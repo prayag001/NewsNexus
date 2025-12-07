@@ -55,7 +55,7 @@ CONFIG_PATH = os.environ.get(
 )
 
 # Retry settings
-MAX_RETRIES = 2
+MAX_RETRIES = 1  # Reduced from 2 to make failed sites skip faster
 RETRY_BACKOFF = 0.5
 
 # Request settings
@@ -1714,9 +1714,10 @@ def get_top_news(count: int = 8, topic: Optional[str] = None, location: Optional
         futures = {executor.submit(fetch_domain, site_config): site_config 
                    for site_config in sites_to_fetch}
         
-        for future in as_completed(futures, timeout=8):
+        # Process futures as they complete (don't wait for slow sites)
+        for future in as_completed(futures):
             try:
-                result = future.result(timeout=3)
+                result = future.result(timeout=0.1)  # Just retrieve the result, don't wait
                 if result:
                     if 'articles' in result and result['articles']:
                         all_articles.extend(result['articles'])
