@@ -21,5 +21,7 @@ PRD_LOCAL.md
 # Ignore test files and directories
 test*
 tests/
+.pytest_cache/
+.coverage
 
 # Add any other files or folders you want Git to ignore below
