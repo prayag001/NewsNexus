@@ -16,7 +16,7 @@
       {"type": "official_rss", "url": "", "priority": 1, "timeout_ms": 2000},
       {"type": "rsshub", "url": "", "priority": 2, "timeout_ms": 2000},
       {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:aifire.co&hl=en", "priority": 3, "timeout_ms": 3000},
-      {"type": "scraper", "url": "https://www.aifire.co", "priority": 4, "timeout_ms": 5000}
+      {"type": "scraper", "url": "https://www.aifire.co/posts", "priority": 4, "timeout_ms": 10000}
     ]
   },
   {
@@ -41,6 +41,7 @@
   },
   {
     "name": "Creator Economy",
+    "domain": "creatoreconomy.so",
     "sources": [
       {"type": "official_rss", "url": "", "priority": 1, "timeout_ms": 2000},
       {"type": "rsshub", "url": "", "priority": 2, "timeout_ms": 2000},

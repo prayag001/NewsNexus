@@ -13,6 +13,7 @@ Features:
 """
 import sys
 import os
+import io
 import json
 import logging
 import re
@@ -25,6 +26,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as
 from collections import defaultdict
 from functools import lru_cache
 import threading
+
+# Fix Windows console encoding for Unicode output
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 import feedparser
 import requests
@@ -55,7 +60,7 @@ RETRY_BACKOFF = 0.5
 
 # Request settings
 DEFAULT_TIMEOUT_MS = 3000
-USER_AGENT = 'NewsNexus/1.0 (MCP News Aggregator; +https://github.com/newsnexus)'
+USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
 # Deep scraper settings
 DEEP_SCRAPE_ENABLED = os.environ.get('NEWSNEXUS_DEEP_SCRAPE', 'true').lower() == 'true'
