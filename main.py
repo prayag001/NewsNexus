@@ -1644,10 +1644,16 @@ def get_top_news(count: int = 8, topic: Optional[str] = None, location: Optional
     # Filter sites by priority field (lower number = higher priority)
     TOP_NEWS_SITE_LIMIT = 12  # Only fetch from top 12 sites
     
-    sites_to_fetch = sorted(
-        [s for s in config if s.get('domain')],
-        key=lambda x: x.get('priority') if x.get('priority') is not None else 999  # null priority goes last
-    )[:TOP_NEWS_SITE_LIMIT]
+    # FIXED: Only include sites with numeric priority 1-12, exclude null priority sites
+    priority_sites = [
+        s for s in config 
+        if s.get('domain') 
+        and s.get('priority') is not None 
+        and isinstance(s.get('priority'), int)
+        and 1 <= s.get('priority') <= 12
+    ]
+    
+    sites_to_fetch = sorted(priority_sites, key=lambda x: x.get('priority'))[:TOP_NEWS_SITE_LIMIT]
     
     logger.info(f"Fetching top news from {len(sites_to_fetch)} priority sites")
     
