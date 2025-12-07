@@ -90,7 +90,7 @@
         "timeout_ms": 2000
       }
     ],
-    "priority": 3
+    "priority": null
   },
   {
     "name": "Business Insider India Tech",
@@ -121,7 +121,7 @@
         "timeout_ms": 2000
       }
     ],
-    "priority": 4
+    "priority": null
   },
   {
     "name": "Analytics India Mag",
@@ -183,7 +183,7 @@
         "timeout_ms": 2000
       }
     ],
-    "priority": 6
+    "priority": null
   },
   {
     "name": "WIRED",
@@ -338,7 +338,7 @@
         "timeout_ms": 2000
       }
     ],
-    "priority": 11
+    "priority": null
   },
   {
     "name": "TechRepublic",
