@@ -1423,7 +1423,8 @@ def fetch_all_sources_parallel(sources: List[Dict], domain: str, max_workers: in
 # =============================================================================
 
 def get_articles(domain: str, topic: Optional[str] = None, 
-                location: Optional[str] = None, lastNDays: Optional[int] = None) -> Dict:
+                location: Optional[str] = None, lastNDays: Optional[int] = None,
+                fast_mode: bool = False) -> Dict:
     """
     Main function to retrieve articles using 4-layer fallback strategy.
     
@@ -1432,6 +1433,7 @@ def get_articles(domain: str, topic: Optional[str] = None,
         topic: Optional topic keyword filter
         location: Optional location keyword filter
         lastNDays: Optional number of days to look back
+        fast_mode: If True, skip straight to Google News RSS (fastest source)
     
     Returns:
         Dict with sourceUsed, articles list, and metadata
@@ -1494,6 +1496,13 @@ def get_articles(domain: str, topic: Optional[str] = None,
     
     # Sort sources by priority
     sources = sorted(site.get('sources', []), key=lambda x: x.get('priority', 99))
+    
+    # Fast mode: Skip straight to Google News RSS (fastest, most reliable)
+    if fast_mode:
+        google_source = next((s for s in sources if s.get('type') == 'google_news' and s.get('url')), None)
+        if google_source:
+            sources = [google_source]  # Only try Google News
+            logger.info(f"Fast mode: Using Google News RSS only for {domain}")
     
     # Fetch articles
     result = None
@@ -1655,7 +1664,8 @@ def get_top_news(count: int = 8, topic: Optional[str] = None, location: Optional
                 domain=domain,
                 topic=topic,
                 location=location,
-                lastNDays=lastNDays
+                lastNDays=lastNDays,
+                fast_mode=True  # Skip to Google News RSS for speed
             )
             
             if result.get('articles'):
