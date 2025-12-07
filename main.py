@@ -1631,8 +1631,19 @@ def get_top_news(count: int = 8, topic: Optional[str] = None, location: Optional
     sources_used = []
     errors = []
     
+    # For top news, only fetch from top priority sites (faster response)
+    # Filter sites by priority field (lower number = higher priority)
+    TOP_NEWS_SITE_LIMIT = 12  # Only fetch from top 12 sites
+    
+    sites_to_fetch = sorted(
+        [s for s in config if s.get('domain')],
+        key=lambda x: x.get('priority', 999)  # Sites without priority go last
+    )[:TOP_NEWS_SITE_LIMIT]
+    
+    logger.info(f"Fetching top news from {len(sites_to_fetch)} priority sites")
+    
     # Parallel domain fetching for top news
-    max_workers = min(10, len(config))  # Limit concurrent domain fetches
+    max_workers = min(8, len(sites_to_fetch))  # Limit concurrent domain fetches
     
     def fetch_domain(site_config):
         domain = site_config.get('domain')
@@ -1676,9 +1687,9 @@ def get_top_news(count: int = 8, topic: Optional[str] = None, location: Optional
     # Use ThreadPoolExecutor for parallel domain fetching
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(fetch_domain, site_config): site_config 
-                   for site_config in config}
+                   for site_config in sites_to_fetch}
         
-        for future in as_completed(futures, timeout=30):
+        for future in as_completed(futures, timeout=6):
             try:
                 result = future.result(timeout=5)
                 if result:
