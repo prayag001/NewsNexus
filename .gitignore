@@ -25,3 +25,8 @@ tests/
 .coverage
 
 # Add any other files or folders you want Git to ignore below
+validate_new_sites.py
+validate_rss_feed.py
+validate_sites.py
+verify_reorder.py
+check_moneycontrol.py
