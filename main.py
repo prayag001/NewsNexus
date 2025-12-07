@@ -1497,12 +1497,18 @@ def get_articles(domain: str, topic: Optional[str] = None,
     # Sort sources by priority
     sources = sorted(site.get('sources', []), key=lambda x: x.get('priority', 99))
     
-    # Fast mode: Skip straight to Google News RSS (fastest, most reliable)
+    # Fast mode: Use official RSS feed (highest priority, best quality)
     if fast_mode:
-        google_source = next((s for s in sources if s.get('type') == 'google_news' and s.get('url')), None)
-        if google_source:
-            sources = [google_source]  # Only try Google News
-            logger.info(f"Fast mode: Using Google News RSS only for {domain}")
+        official_rss = next((s for s in sources if s.get('type') == 'official_rss' and s.get('url')), None)
+        if official_rss:
+            sources = [official_rss]  # Only try official RSS
+            logger.info(f"Fast mode: Using official RSS only for {domain}")
+        else:
+            # Fallback to Google News if no official RSS
+            google_source = next((s for s in sources if s.get('type') == 'google_news' and s.get('url')), None)
+            if google_source:
+                sources = [google_source]
+                logger.info(f"Fast mode: Using Google News RSS (no official RSS) for {domain}")
     
     # Fetch articles
     result = None
