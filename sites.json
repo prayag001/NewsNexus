@@ -1,0 +1,80 @@
+[
+  {
+    "name": "TechCrunch",
+    "domain": "techcrunch.com",
+    "sources": [
+      {"type": "official_rss", "url": "https://techcrunch.com/feed/", "priority": 1, "timeout_ms": 2000},
+      {"type": "rsshub", "url": "http://localhost:1200/techcrunch", "priority": 2, "timeout_ms": 2000},
+      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:techcrunch.com&hl=en", "priority": 3, "timeout_ms": 3000},
+      {"type": "scraper", "url": "https://techcrunch.com", "priority": 4, "timeout_ms": 5000}
+    ]
+  },
+  {
+    "name": "BBC News",
+    "domain": "bbc.com",
+    "sources": [
+      {"type": "official_rss", "url": "http://feeds.bbci.co.uk/news/rss.xml", "priority": 1, "timeout_ms": 2000},
+      {"type": "rsshub", "url": "http://localhost:1200/bbc", "priority": 2, "timeout_ms": 2000},
+      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:bbc.com&hl=en", "priority": 3, "timeout_ms": 3000},
+      {"type": "scraper", "url": "https://www.bbc.com/news", "priority": 4, "timeout_ms": 5000}
+    ]
+  },
+  {
+    "name": "The Verge",
+    "domain": "theverge.com",
+    "sources": [
+      {"type": "official_rss", "url": "https://www.theverge.com/rss/index.xml", "priority": 1, "timeout_ms": 2000},
+      {"type": "rsshub", "url": "http://localhost:1200/theverge", "priority": 2, "timeout_ms": 2000},
+      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:theverge.com&hl=en", "priority": 3, "timeout_ms": 3000},
+      {"type": "scraper", "url": "https://www.theverge.com", "priority": 4, "timeout_ms": 5000}
+    ]
+  },
+  {
+    "name": "Ars Technica",
+    "domain": "arstechnica.com",
+    "sources": [
+      {"type": "official_rss", "url": "https://feeds.arstechnica.com/arstechnica/index", "priority": 1, "timeout_ms": 2000},
+      {"type": "rsshub", "url": "http://localhost:1200/arstechnica", "priority": 2, "timeout_ms": 2000},
+      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:arstechnica.com&hl=en", "priority": 3, "timeout_ms": 3000},
+      {"type": "scraper", "url": "https://arstechnica.com", "priority": 4, "timeout_ms": 5000}
+    ]
+  },
+  {
+    "name": "Hacker News",
+    "domain": "news.ycombinator.com",
+    "sources": [
+      {"type": "rsshub", "url": "http://localhost:1200/hackernews", "priority": 1, "timeout_ms": 2000},
+      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:news.ycombinator.com&hl=en", "priority": 2, "timeout_ms": 3000},
+      {"type": "scraper", "url": "https://news.ycombinator.com", "priority": 3, "timeout_ms": 5000}
+    ]
+  },
+  {
+    "name": "Reuters",
+    "domain": "reuters.com",
+    "sources": [
+      {"type": "rsshub", "url": "http://localhost:1200/reuters/world", "priority": 1, "timeout_ms": 2000},
+      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:reuters.com&hl=en", "priority": 2, "timeout_ms": 3000},
+      {"type": "scraper", "url": "https://www.reuters.com/news/world", "priority": 3, "timeout_ms": 5000}
+    ]
+  },
+  {
+    "name": "Wired",
+    "domain": "wired.com",
+    "sources": [
+      {"type": "official_rss", "url": "https://www.wired.com/feed/rss", "priority": 1, "timeout_ms": 2000},
+      {"type": "rsshub", "url": "http://localhost:1200/wired", "priority": 2, "timeout_ms": 2000},
+      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:wired.com&hl=en", "priority": 3, "timeout_ms": 3000},
+      {"type": "scraper", "url": "https://www.wired.com", "priority": 4, "timeout_ms": 5000}
+    ]
+  },
+  {
+    "name": "MIT Technology Review",
+    "domain": "technologyreview.com",
+    "sources": [
+      {"type": "official_rss", "url": "https://www.technologyreview.com/feed/", "priority": 1, "timeout_ms": 2000},
+      {"type": "rsshub", "url": "http://localhost:1200/technologyreview", "priority": 2, "timeout_ms": 2000},
+      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:technologyreview.com&hl=en", "priority": 3, "timeout_ms": 3000},
+      {"type": "scraper", "url": "https://www.technologyreview.com", "priority": 4, "timeout_ms": 5000}
+    ]
+  }
+]
