@@ -1497,18 +1497,21 @@ def get_articles(domain: str, topic: Optional[str] = None,
     # Sort sources by priority
     sources = sorted(site.get('sources', []), key=lambda x: x.get('priority', 99))
     
-    # Fast mode: Use official RSS feed (highest priority, best quality)
+    # Fast mode: Try official RSS first (fresher data), fallback to Google News if it fails
     if fast_mode:
         official_rss = next((s for s in sources if s.get('type') == 'official_rss' and s.get('url')), None)
-        if official_rss:
-            sources = [official_rss]  # Only try official RSS
+        google_source = next((s for s in sources if s.get('type') == 'google_news' and s.get('url')), None)
+        
+        if official_rss and google_source:
+            # Try both, official RSS first with quick fallback to Google News
+            sources = [official_rss, google_source]
+            logger.info(f"Fast mode: Trying official RSS with Google News fallback for {domain}")
+        elif official_rss:
+            sources = [official_rss]
             logger.info(f"Fast mode: Using official RSS only for {domain}")
-        else:
-            # Fallback to Google News if no official RSS
-            google_source = next((s for s in sources if s.get('type') == 'google_news' and s.get('url')), None)
-            if google_source:
-                sources = [google_source]
-                logger.info(f"Fast mode: Using Google News RSS (no official RSS) for {domain}")
+        elif google_source:
+            sources = [google_source]
+            logger.info(f"Fast mode: Using Google News RSS only for {domain}")
     
     # Fetch articles
     result = None
@@ -1711,9 +1714,9 @@ def get_top_news(count: int = 8, topic: Optional[str] = None, location: Optional
         futures = {executor.submit(fetch_domain, site_config): site_config 
                    for site_config in sites_to_fetch}
         
-        for future in as_completed(futures, timeout=6):
+        for future in as_completed(futures, timeout=8):
             try:
-                result = future.result(timeout=5)
+                result = future.result(timeout=3)
                 if result:
                     if 'articles' in result and result['articles']:
                         all_articles.extend(result['articles'])

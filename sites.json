@@ -8,7 +8,7 @@
         "type": "official_rss",
         "url": "https://www.moneycontrol.com/rss/latestnews.xml",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -38,7 +38,7 @@
         "type": "official_rss",
         "url": "https://tech.hindustantimes.com/rss",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -69,7 +69,7 @@
         "type": "official_rss",
         "url": "https://www.gadgets360.com/rss",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -100,7 +100,7 @@
         "type": "official_rss",
         "url": "https://www.businessinsider.in/tech/rssfeed",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -131,7 +131,7 @@
         "type": "official_rss",
         "url": "https://analyticsindiamag.com/feed/",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -162,7 +162,7 @@
         "type": "official_rss",
         "url": "https://indiatechnologynews.in/feed",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -193,7 +193,7 @@
         "type": "official_rss",
         "url": "https://www.wired.com/feed/rss",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -224,7 +224,7 @@
         "type": "official_rss",
         "url": "https://www.theverge.com/rss/index.xml",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -255,7 +255,7 @@
         "type": "official_rss",
         "url": "https://feeds.bbci.co.uk/news/rss.xml",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -286,7 +286,7 @@
         "type": "official_rss",
         "url": "https://www.techradar.com/rss",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -317,7 +317,7 @@
         "type": "official_rss",
         "url": "https://www.marktechpost.com/feed/",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -348,7 +348,7 @@
         "type": "official_rss",
         "url": "https://www.techrepublic.com/rssfeeds/articles/",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -379,7 +379,7 @@
         "type": "official_rss",
         "url": "",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -410,7 +410,7 @@
         "type": "official_rss",
         "url": "https://techeela.com/feed",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -441,7 +441,7 @@
         "type": "official_rss",
         "url": "https://www.ndtv.com/rss",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -472,7 +472,7 @@
         "type": "official_rss",
         "url": "https://indianexpress.com/section/technology/artificial-intelligence/feed",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -503,7 +503,7 @@
         "type": "official_rss",
         "url": "",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -534,7 +534,7 @@
         "type": "official_rss",
         "url": "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -565,7 +565,7 @@
         "type": "official_rss",
         "url": "https://www.hindustantimes.com/feeds/rss/rssfeed.xml",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -596,7 +596,7 @@
         "type": "official_rss",
         "url": "",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -627,7 +627,7 @@
         "type": "official_rss",
         "url": "",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -658,7 +658,7 @@
         "type": "official_rss",
         "url": "",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -684,7 +684,7 @@
         "type": "official_rss",
         "url": "https://www.infoworld.com/index.rss",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -715,7 +715,7 @@
         "type": "official_rss",
         "url": "",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -746,7 +746,7 @@
         "type": "official_rss",
         "url": "https://www.techbuzz.ai/rss",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -777,7 +777,7 @@
         "type": "official_rss",
         "url": "https://venturebeat.com/feed/",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -808,7 +808,7 @@
         "type": "official_rss",
         "url": "https://www.xda-developers.com/feed/",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -839,7 +839,7 @@
         "type": "official_rss",
         "url": "",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -888,7 +888,7 @@
         "type": "official_rss",
         "url": "https://www.aitrends.com/feed/",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -919,7 +919,7 @@
         "type": "official_rss",
         "url": "https://www.cnet.com/rss/news/",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -950,7 +950,7 @@
         "type": "official_rss",
         "url": "https://gizmodo.com/rss",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -981,7 +981,7 @@
         "type": "official_rss",
         "url": "https://www.engadget.com/rss.xml",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -1012,7 +1012,7 @@
         "type": "official_rss",
         "url": "https://www.zdnet.com/news/rss.xml",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -1043,7 +1043,7 @@
         "type": "official_rss",
         "url": "https://blog.google/technology/ai/rss/",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -1074,7 +1074,7 @@
         "type": "official_rss",
         "url": "https://www.kdnuggets.com/feed",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -1105,7 +1105,7 @@
         "type": "official_rss",
         "url": "https://www.analyticsvidhya.com/blog/feed/",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -1136,7 +1136,7 @@
         "type": "official_rss",
         "url": "https://dev.to/feed",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -1167,7 +1167,7 @@
         "type": "official_rss",
         "url": "https://www.freecodecamp.org/news/rss/",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -1198,7 +1198,7 @@
         "type": "official_rss",
         "url": "https://github.blog/feed/",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -1229,7 +1229,7 @@
         "type": "official_rss",
         "url": "https://hackernoon.com/feed",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -1260,7 +1260,7 @@
         "type": "official_rss",
         "url": "https://openai.com/blog/rss.xml",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -1291,7 +1291,7 @@
         "type": "official_rss",
         "url": "",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -1322,7 +1322,7 @@
         "type": "official_rss",
         "url": "",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -1353,7 +1353,7 @@
         "type": "official_rss",
         "url": "",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -1384,7 +1384,7 @@
         "type": "official_rss",
         "url": "https://news.google.com/rss",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -1415,7 +1415,7 @@
         "type": "official_rss",
         "url": "",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
@@ -1447,7 +1447,7 @@
         "type": "official_rss",
         "url": "https://www.androidpolice.com/feed/",
         "priority": 1,
-        "timeout_ms": 1500
+        "timeout_ms": 3000
       },
       {
         "type": "rsshub",
