@@ -1,103 +1,96 @@
-# NewsNexus MCP Server v2.0
+# NewsNexus v2.0 - Advanced News Aggregator
 
-A production-ready STDIO MCP server for news/article aggregation with a 4-layer fallback strategy.
+A production-ready news aggregation system with intelligent filtering, MCP server support, and command-line interface.
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![MCP Protocol](https://img.shields.io/badge/MCP-2024--11--05-green.svg)](https://modelcontextprotocol.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+## 🎯 Overview
+
+NewsNexus is an intelligent news aggregator that fetches articles from multiple sources with advanced filtering capabilities. It supports both MCP (Model Context Protocol) for AI assistants and command-line interface for human users.
+
+### Key Features
+
+- ✅ **5 Filtering Types**: Topic, Location, Time-based, Deduplication, Priority-based
+- ✅ **4-Layer Fallback**: Official RSS → RSSHub → Google News → HTML Scraper
+- ✅ **Fast Performance**: 2-3 second response time with parallel fetching
+- ✅ **Dual Interface**: MCP server for AI assistants + CLI for humans
+- ✅ **Smart Deduplication**: Automatic removal of duplicates by URL and title
+- ✅ **Priority Sources**: Fetches from top-rated news sources only
+
 ## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         MCP Client (VS Code)                            │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼ STDIO (JSON-RPC 2.0)
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        NewsNexus MCP Server v2.0                        │
-│  ┌────────────────────────────────────────────────────────────────┐     │
-│  │                      Request Handler                            │     │
-│  │   • initialize  • tools/list  • tools/call                      │     │
-│  │   • Rate Limiting  • Input Validation  • Error Handling         │     │
-│  └────────────────────────────────────────────────────────────────┘     │
-│                                    │                                     │
-│  ┌─────────────────┐  ┌───────────┴───────────┐  ┌─────────────────┐    │
-│  │     Cache       │  │                       │  │    Metrics      │    │
-│  │  (In-Memory)    │◄─┤  4-Layer Fallback     ├─►│   Collector     │    │
-│  │  TTL: 5min      │  │       Engine          │  │  (Prometheus)   │    │
-│  └─────────────────┘  │                       │  └─────────────────┘    │
-│                       │  ┌─────────────────┐  │                         │
-│                       │  │ 1. Official RSS │  │                         │
-│                       │  ├─────────────────┤  │                         │
-│                       │  │ 2. RSSHub       │  │                         │
-│                       │  ├─────────────────┤  │                         │
-│                       │  │ 3. Google News  │  │                         │
-│                       │  ├─────────────────┤  │                         │
-│                       │  │ 4. HTML Scraper │  │                         │
-│                       │  └─────────────────┘  │                         │
-│                       │                       │                         │
-│                       │  • Retry w/ Backoff   │                         │
-│                       │  • Parallel Fetch     │                         │
-│                       │  • Connection Pool    │                         │
-│                       └───────────────────────┘                         │
-│                                    │                                     │
-│                                    ▼                                     │
-│  ┌────────────────────────────────────────────────────────────────┐     │
-│  │                    Filter & Normalize                           │     │
-│  │   • Topic keyword filter    • Deduplication by URL & Title      │     │
-│  │   • Location keyword filter • Sort by date (newest first)       │     │
-│  │   • Date range filter       • XSS sanitization                  │     │
-│  └────────────────────────────────────────────────────────────────┘     │
+│                    NewsNexus v2.0 - Dual Interface                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  CLI (fetch_news.py)              MCP Server (main.py)                   │
+│  ┌──────────────────┐             ┌──────────────────┐                  │
+│  │ Command Args     │             │ JSON-RPC 2.0     │                  │
+│  │ --topic AI       │─────────────│ STDIN/STDOUT     │                  │
+│  │ --location India │             │ (AI Assistants)  │                  │
+│  │ --days 3         │             └──────────────────┘                  │
+│  └──────────────────┘                      │                             │
+│           │                                │                             │
+│           └────────────────────────────────┘                             │
+│                           │                                              │
+│                           ▼                                              │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │              5-Layer Filtering Engine                            │    │
+│  │  ┌────────────┐ ┌──────────┐ ┌─────────┐ ┌──────────────────┐ │    │
+│  │  │ Topic      │ │ Location │ │ Time    │ │ Deduplication    │ │    │
+│  │  │ Filter     │ │ Filter   │ │ Filter  │ │ (URL + Title)    │ │    │
+│  │  └────────────┘ └──────────┘ └─────────┘ └──────────────────┘ │    │
+│  │  ┌─────────────────────────────────────────────────────────┐   │    │
+│  │  │ Priority-based Site Filtering (Top 12 sites)            │   │    │
+│  │  └─────────────────────────────────────────────────────────┘   │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+│                           │                                              │
+│                           ▼                                              │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │            4-Layer Fallback Strategy (Parallel Fetch)            │    │
+│  │  ┌─────────────┐ ┌─────────┐ ┌─────────────┐ ┌──────────────┐ │    │
+│  │  │ Official    │ │ RSSHub  │ │ Google News │ │ HTML Scraper │ │    │
+│  │  │ RSS         │ │         │ │ RSS         │ │              │ │    │
+│  │  └─────────────┘ └─────────┘ └─────────────┘ └──────────────┘ │    │
+│  │  • Retry logic  • Connection pooling  • 2s timeout each        │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
-
-## ✨ Features
-
-### Core Functionality
-- ✅ **4-Layer Fallback**: Official RSS → RSSHub → Google News RSS → HTML Scraper
-- ✅ **Fault Tolerance**: Configurable timeouts and retry with exponential backoff
-- ✅ **Parallel Fetching**: Optional concurrent source fetching for speed
-- ✅ **Connection Pooling**: Reusable HTTP connections for efficiency
-
-### Security
-- ✅ **Input Validation**: Domain, URL, and parameter validation
-- ✅ **Rate Limiting**: Per-domain rate limits to prevent abuse
-- ✅ **XSS Prevention**: HTML entity encoding in output
-- ✅ **URL Filtering**: Blocks localhost, private IPs, dangerous protocols
-
-### Performance
-- ✅ **In-Memory Caching**: TTL-based cache with automatic eviction
-- ✅ **Article Deduplication**: By URL and fuzzy title matching
-- ✅ **Connection Pooling**: HTTP session reuse
-
-### Observability
-- ✅ **Structured Logging**: JSON-formatted logs to STDERR
-- ✅ **Metrics Collection**: Request counts, durations, error rates
-- ✅ **Health Check**: Status endpoint for monitoring
-
-### Deployment
-- ✅ **Environment Variables**: Full configuration via env vars
-- ✅ **MCP Integration**: Ready for VS Code
 
 ## 🚀 Quick Start
 
 ### Installation
 
 ```bash
-# Clone or create the project
+# Clone the repository
 cd NewsNexus
 
 # Install dependencies
 pip install -r requirements.txt
-
-# Run the server
-python main.py
 ```
 
-### VS Code Integration
+### Command-Line Usage
 
-Add to your `mcp.json`:
+```bash
+# Today's top 10 news
+python fetch_news.py --count 10
+
+# AI news from India (last 3 days)
+python fetch_news.py --count 5 --topic AI --location India --days 3
+
+# Technology news with short summaries
+python fetch_news.py --count 15 --topic technology --days 7 --summary_lines 2
+
+# Get help
+python fetch_news.py --help
+```
+
+### MCP Server Usage
+
+For AI assistants (Claude, GitHub Copilot), add to your `mcp.json`:
 
 ```json
 {

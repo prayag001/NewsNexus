@@ -1714,23 +1714,21 @@ def get_top_news(count: int = 8, topic: Optional[str] = None, location: Optional
         futures = {executor.submit(fetch_domain, site_config): site_config 
                    for site_config in sites_to_fetch}
         
-        # Process futures as they complete (don't wait for slow sites)
+        # Process futures as they complete (let each worker finish within its configured timeout)
         for future in as_completed(futures):
             try:
-                result = future.result(timeout=0.1)  # Just retrieve the result, don't wait
+                result = future.result()  # No additional timeout - workers have their own timeouts
                 if result:
                     if 'articles' in result and result['articles']:
                         all_articles.extend(result['articles'])
                         sources_used.append(result['source_info'])
                     elif 'error' in result:
                         errors.append({'domain': result['domain'], 'error': result['error']})
-            except (FuturesTimeoutError, TimeoutError):
+            except Exception as e:
                 site = futures[future]
                 domain = site.get('domain', 'unknown')
-                logger.warning("Timeout fetching from domain: %s", domain)
-                errors.append({'domain': domain, 'error': 'timeout'})
-            except Exception as e:
-                logger.error("Error processing future: %s", str(e))
+                logger.error("Error fetching from domain %s: %s", domain, str(e))
+                errors.append({'domain': domain, 'error': str(e)})
     
     # Sort all articles by published date (newest first)
     def get_sort_key(article):

@@ -18,6 +18,22 @@ __pycache__/
 node_modules/
 PRD_LOCAL.md
 
+# Test files (removed - only keeping reference files)
+test_aifire_*.py
+test_aimultiple_*.py
+test_deep_scraper.py
+test_google_news_*.py
+test_official_rss.py
+test_speed.py
+check_moneycontrol.py
+check_official_rss.py
+validate_*.py
+verify_*.py
+
+# Coverage and pytest
+.coverage
+.pytest_cache/
+
 # Ignore test files and directories
 test*
 tests/
