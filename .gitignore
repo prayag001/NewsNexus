@@ -18,4 +18,8 @@ __pycache__/
 node_modules/
 PRD_LOCAL.md
 
+# Ignore test files and directories
+test*
+tests/
+
 # Add any other files or folders you want Git to ignore below
