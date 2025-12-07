@@ -1646,7 +1646,7 @@ def get_top_news(count: int = 8, topic: Optional[str] = None, location: Optional
     
     sites_to_fetch = sorted(
         [s for s in config if s.get('domain')],
-        key=lambda x: x.get('priority', 999)  # Sites without priority go last
+        key=lambda x: x.get('priority') if x.get('priority') is not None else 999  # null priority goes last
     )[:TOP_NEWS_SITE_LIMIT]
     
     logger.info(f"Fetching top news from {len(sites_to_fetch)} priority sites")

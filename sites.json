@@ -59,7 +59,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "Hindustan Times Tech",
@@ -245,7 +245,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "NDTV",
@@ -276,7 +276,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "Indian Express AI",
@@ -307,7 +307,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "AI Trends India",
@@ -338,7 +338,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "Times of India",
@@ -369,7 +369,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "Hindustan Times",
@@ -400,7 +400,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "Creator Economy",
@@ -431,7 +431,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "AIMultiple",
@@ -462,7 +462,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "AI Fire",
@@ -488,7 +488,7 @@
       }
     ],
     "note": "JS-rendered site - scraper won't work, no real RSS feed available",
-    "priority": 99
+    "priority": null
   },
   {
     "name": "InfoWorld",
@@ -519,7 +519,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "Artificial Intelligence News",
@@ -550,7 +550,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "TechBuzz",
@@ -581,7 +581,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "MarkTechPost",
@@ -643,7 +643,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "XDA Developers",
@@ -674,7 +674,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "AIBase",
@@ -723,7 +723,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "AI Trends",
@@ -754,7 +754,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "WIRED",
@@ -816,7 +816,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "Gizmodo",
@@ -847,7 +847,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "Engadget",
@@ -878,7 +878,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "ZDNet News",
@@ -909,7 +909,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "Google Blog AI",
@@ -940,7 +940,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "KDnuggets",
@@ -971,7 +971,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "Analytics Vidhya",
@@ -1002,7 +1002,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "TechRadar",
@@ -1064,7 +1064,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "TechRepublic",
@@ -1157,7 +1157,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "GitHub Blog",
@@ -1188,7 +1188,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "HackerNoon",
@@ -1219,7 +1219,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "OpenAI Blog",
@@ -1250,7 +1250,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "DeepMind Blog",
@@ -1281,7 +1281,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "Anthropic News",
@@ -1312,7 +1312,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "Hugging Face Blog",
@@ -1343,7 +1343,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "Google News",
@@ -1374,7 +1374,7 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   },
   {
     "name": "Substack",
@@ -1406,7 +1406,7 @@
       }
     ],
     "note": "Platform for newsletters - individual substacks have their own RSS feeds",
-    "priority": 99
+    "priority": null
   },
   {
     "name": "BBC",
@@ -1468,6 +1468,6 @@
         "timeout_ms": 1500
       }
     ],
-    "priority": 99
+    "priority": null
   }
 ]
