@@ -330,4 +330,37 @@ Built with ❤️ for the MCP ecosystem
   - Survive restarts and scale horizontally
 - Respect robots.txt and publisher terms when scraping at scale.
 
+## 🆕 Google News URL Quality Validation & Fallback Logic
+
+### Why This Matters
+Google News RSS often returns indirect/redirect URLs (e.g., `news.google.com/rss/articles/...`) that do not link directly to the original article. These URLs can result in 404 errors or poor user experience. NewsNexus now includes a robust quality validation and fallback system to ensure only direct, working article URLs are returned.
+
+### How It Works
+- **After fetching from Google News RSS (Priority 3):**
+  - The system attempts to resolve each article URL. If the URL is a Google News redirect, it tries to follow the redirect (with a 2-second timeout).
+  - If the redirect cannot be resolved quickly, it falls back to the source domain or marks the article as invalid.
+  - The system counts how many articles have valid, direct URLs (not Google News redirects).
+  - If less than 50% of articles have valid URLs, Google News is treated as a failure and the system automatically falls back to Priority 4 (HTML Scraper).
+
+### Real-World Example
+- **Site:** aimultiple.com
+- **Google News RSS:** Returns 50 articles, but all URLs are redirects (`news.google.com/rss/articles/...`).
+- **Result:** System detects 0/50 valid URLs, treats Google News as failed, and falls back to Priority 4 scraper.
+- **Scraper:** Returns 6 articles with direct URLs and full summaries.
+
+### Key Benefits
+- **No more broken/redirect URLs in results**
+- **Always returns direct, working article links**
+- **Automatic fallback to HTML scraper when Google News quality is poor**
+- **Configurable timeout and quality threshold**
+
+### Technical Details
+- Redirect resolution uses `requests.head` with a 2-second timeout.
+- Quality threshold is set to 50% (can be adjusted in code).
+- All fallback logic is logged for debugging and observability.
+
+### User Experience
+- If a user requests "top article from AI Multiple" and Google News is indexed but only provides redirect URLs, NewsNexus will automatically use the HTML scraper to fetch direct links.
+- This ensures reliable, production-grade results for all supported sites.
+
 ## 📚 See `NewsNexus-Reference.md` for a full technical deep-dive and Q&A.
