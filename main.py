@@ -46,7 +46,7 @@ MAX_ARTICLES_PER_REQUEST = int(os.environ.get('NEWSNEXUS_MAX_ARTICLES', '50'))
 CACHE_TTL_SECONDS = int(os.environ.get('NEWSNEXUS_CACHE_TTL', '300'))
 RATE_LIMIT_REQUESTS = int(os.environ.get('NEWSNEXUS_RATE_LIMIT', '10'))
 RATE_LIMIT_WINDOW = int(os.environ.get('NEWSNEXUS_RATE_WINDOW', '60'))
-PARALLEL_FETCH = os.environ.get('NEWSNEXUS_PARALLEL', 'false').lower() == 'true'
+PARALLEL_FETCH = os.environ.get('NEWSNEXUS_PARALLEL', 'true').lower() == 'true'
 
 # Resolve config path relative to script location
 CONFIG_PATH = os.environ.get(
@@ -59,13 +59,13 @@ MAX_RETRIES = 2
 RETRY_BACKOFF = 0.5
 
 # Request settings
-DEFAULT_TIMEOUT_MS = 3000
+DEFAULT_TIMEOUT_MS = 2000
 USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
 # Deep scraper settings
 DEEP_SCRAPE_ENABLED = os.environ.get('NEWSNEXUS_DEEP_SCRAPE', 'true').lower() == 'true'
 DEEP_SCRAPE_MAX_ARTICLES = int(os.environ.get('NEWSNEXUS_DEEP_SCRAPE_MAX', '10'))
-DEEP_SCRAPE_TIMEOUT_MS = int(os.environ.get('NEWSNEXUS_DEEP_SCRAPE_TIMEOUT', '5000'))
+DEEP_SCRAPE_TIMEOUT_MS = int(os.environ.get('NEWSNEXUS_DEEP_SCRAPE_TIMEOUT', '3000'))
 DEEP_SCRAPE_SUMMARY_LENGTH = int(os.environ.get('NEWSNEXUS_SUMMARY_LENGTH', '500'))
 DEEP_SCRAPE_PARALLEL_WORKERS = int(os.environ.get('NEWSNEXUS_DEEP_WORKERS', '5'))
 
@@ -1631,11 +1631,13 @@ def get_top_news(count: int = 8, topic: Optional[str] = None, location: Optional
     sources_used = []
     errors = []
     
-    # Fetch from all configured domains
-    for site_config in config:
+    # Parallel domain fetching for top news
+    max_workers = min(10, len(config))  # Limit concurrent domain fetches
+    
+    def fetch_domain(site_config):
         domain = site_config.get('domain')
         if not domain:
-            continue
+            return None
         
         try:
             result = get_articles(
@@ -1648,19 +1650,50 @@ def get_top_news(count: int = 8, topic: Optional[str] = None, location: Optional
             if result.get('articles'):
                 for article in result['articles']:
                     article['_fetch_source'] = result.get('sourceUsed', 'unknown')
-                all_articles.extend(result['articles'])
-                sources_used.append({
-                    'domain': domain,
-                    'source': result.get('sourceUsed', 'unknown'),
-                    'count': len(result['articles']),
-                    'cached': result.get('cached', False)
-                })
-            else:
-                errors.append({'domain': domain, 'error': 'no articles found'})
                 
+                return {
+                    'domain': domain,
+                    'articles': result['articles'],
+                    'source_info': {
+                        'domain': domain,
+                        'source': result.get('sourceUsed', 'unknown'),
+                        'count': len(result['articles']),
+                        'cached': result.get('cached', False)
+                    }
+                }
+            else:
+                return {
+                    'domain': domain,
+                    'error': 'no articles found'
+                }
         except Exception as e:
             logger.error("Error fetching from %s: %s", domain, str(e))
-            errors.append({'domain': domain, 'error': str(e)})
+            return {
+                'domain': domain,
+                'error': str(e)
+            }
+    
+    # Use ThreadPoolExecutor for parallel domain fetching
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(fetch_domain, site_config): site_config 
+                   for site_config in config}
+        
+        for future in as_completed(futures, timeout=30):
+            try:
+                result = future.result(timeout=5)
+                if result:
+                    if 'articles' in result and result['articles']:
+                        all_articles.extend(result['articles'])
+                        sources_used.append(result['source_info'])
+                    elif 'error' in result:
+                        errors.append({'domain': result['domain'], 'error': result['error']})
+            except (FuturesTimeoutError, TimeoutError):
+                site = futures[future]
+                domain = site.get('domain', 'unknown')
+                logger.warning("Timeout fetching from domain: %s", domain)
+                errors.append({'domain': domain, 'error': 'timeout'})
+            except Exception as e:
+                logger.error("Error processing future: %s", str(e))
     
     # Sort all articles by published date (newest first)
     def get_sort_key(article):
