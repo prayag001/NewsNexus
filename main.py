@@ -606,27 +606,15 @@ def parse_rss_feed(content: bytes, domain: str) -> List[Dict]:
             if not title or not link:
                 continue
             
-            # For Google News URLs, try to resolve redirect to get actual article URL
-            # If we can't resolve it quickly, mark it for later filtering
-            is_google_redirect = False
+            # For Google News URLs, mark as redirect - don't try to resolve individually
+            # We'll do a quick quality check after parsing all entries
             if 'news.google.com' in link:
-                is_google_redirect = True
-                try:
-                    # Try to follow redirect with short timeout
-                    response = requests.head(link, allow_redirects=True, timeout=2,
-                                           headers={'User-Agent': USER_AGENT})
-                    resolved_url = response.url
-                    # Check if we got a real article URL (not news.google.com)
-                    if 'news.google.com' not in resolved_url and resolved_url != link:
-                        link = resolved_url
-                        is_google_redirect = False
-                except Exception:
-                    # Couldn't resolve redirect - try source URL as fallback
-                    if hasattr(entry, 'source'):
-                        source = entry.source
-                        if isinstance(source, dict) and 'href' in source:
-                            link = source['href'].rstrip('/')
-                            is_google_redirect = False  # We have at least a domain URL
+                # Try to get source domain instead of redirect
+                if hasattr(entry, 'source'):
+                    source = entry.source
+                    if isinstance(source, dict) and 'href' in source:
+                        link = source['href'].rstrip('/')
+                # If still a Google redirect, keep it but mark for quality check later
             
             # Validate URL
             valid, _ = validate_url(link)
@@ -1547,27 +1535,29 @@ def get_articles(domain: str, topic: Optional[str] = None,
                 if source_type in ['official_rss', 'rsshub', 'google_news']:
                     articles = parse_rss_feed(response.content, domain)
                     
-                    # For Google News: Check URL quality before accepting results
-                    # If most URLs are still redirects or unusable, treat as failure
+                    # For Google News: Quick quality check on first 5 articles only
+                    # If most are redirects, treat as failure and move to next priority
                     if source_type == 'google_news' and articles:
-                        valid_article_count = 0
-                        for article in articles:
-                            url_to_check = article.get('url', '')
-                            # Check if URL is not a Google News redirect
-                            if url_to_check and 'news.google.com' not in url_to_check:
-                                valid_article_count += 1
+                        sample_size = min(5, len(articles))
+                        valid_count = 0
                         
-                        # If less than 50% of articles have valid URLs, treat as failure
-                        if valid_article_count < len(articles) * 0.5:
+                        for article in articles[:sample_size]:
+                            url_to_check = article.get('url', '')
+                            # Quick check: is it a redirect URL?
+                            if url_to_check and 'news.google.com' not in url_to_check:
+                                valid_count += 1
+                        
+                        # If less than 50% of sampled articles have valid URLs, treat as failure
+                        if valid_count < sample_size * 0.5:
                             logger.warning(
-                                "Google News returned mostly redirect URLs (%d/%d valid), treating as failure",
-                                valid_article_count, len(articles)
+                                "Google News URL quality check failed: %d/%d sampled articles have valid URLs, falling back",
+                                valid_count, sample_size
                             )
-                            articles = []  # Clear articles to trigger next priority
+                            articles = []  # Clear to trigger next priority
                             continue
                         
-                        logger.info("Google News URL quality check: %d/%d articles have valid URLs",
-                                  valid_article_count, len(articles))
+                        logger.info("Google News URL quality check passed: %d/%d sampled articles have valid URLs",
+                                  valid_count, sample_size)
                     
                 elif source_type == 'scraper':
                     # Use deep scraper for priority 4 (scraper type)
