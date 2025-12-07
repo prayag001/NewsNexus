@@ -1,80 +1,114 @@
 [
   {
-    "name": "TechCrunch",
-    "domain": "techcrunch.com",
+    "name": "AIMultiple",
+    "domain": "aimultiple.com",
     "sources": [
-      {"type": "official_rss", "url": "https://techcrunch.com/feed/", "priority": 1, "timeout_ms": 2000},
-      {"type": "rsshub", "url": "http://localhost:1200/techcrunch", "priority": 2, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:techcrunch.com&hl=en", "priority": 3, "timeout_ms": 3000},
-      {"type": "scraper", "url": "https://techcrunch.com", "priority": 4, "timeout_ms": 5000}
+      {"type": "official_rss", "url": "", "priority": 1, "timeout_ms": 2000},
+      {"type": "rsshub", "url": "", "priority": 2, "timeout_ms": 2000},
+      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:aimultiple.com&hl=en", "priority": 3, "timeout_ms": 3000},
+      {"type": "scraper", "url": "https://aimultiple.com", "priority": 4, "timeout_ms": 5000}
     ]
   },
   {
-    "name": "BBC News",
-    "domain": "bbc.com",
+    "name": "AI Fire",
+    "domain": "aifire.co",
     "sources": [
-      {"type": "official_rss", "url": "http://feeds.bbci.co.uk/news/rss.xml", "priority": 1, "timeout_ms": 2000},
-      {"type": "rsshub", "url": "http://localhost:1200/bbc", "priority": 2, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:bbc.com&hl=en", "priority": 3, "timeout_ms": 3000},
-      {"type": "scraper", "url": "https://www.bbc.com/news", "priority": 4, "timeout_ms": 5000}
+      {"type": "official_rss", "url": "", "priority": 1, "timeout_ms": 2000},
+      {"type": "rsshub", "url": "", "priority": 2, "timeout_ms": 2000},
+      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:aifire.co&hl=en", "priority": 3, "timeout_ms": 3000},
+      {"type": "scraper", "url": "https://www.aifire.co", "priority": 4, "timeout_ms": 5000}
     ]
   },
   {
-    "name": "The Verge",
-    "domain": "theverge.com",
+    "name": "InfoWorld",
+    "domain": "infoworld.com",
     "sources": [
-      {"type": "official_rss", "url": "https://www.theverge.com/rss/index.xml", "priority": 1, "timeout_ms": 2000},
-      {"type": "rsshub", "url": "http://localhost:1200/theverge", "priority": 2, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:theverge.com&hl=en", "priority": 3, "timeout_ms": 3000},
-      {"type": "scraper", "url": "https://www.theverge.com", "priority": 4, "timeout_ms": 5000}
+      {"type": "official_rss", "url": "https://www.infoworld.com/index.rss", "priority": 1, "timeout_ms": 2000},
+      {"type": "rsshub", "url": "", "priority": 2, "timeout_ms": 2000},
+      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:infoworld.com&hl=en", "priority": 3, "timeout_ms": 3000},
+      {"type": "scraper", "url": "https://www.infoworld.com", "priority": 4, "timeout_ms": 5000}
     ]
   },
   {
-    "name": "Ars Technica",
-    "domain": "arstechnica.com",
+    "name": "DevShorts",
+    "domain": "devshorts.in",
     "sources": [
-      {"type": "official_rss", "url": "https://feeds.arstechnica.com/arstechnica/index", "priority": 1, "timeout_ms": 2000},
-      {"type": "rsshub", "url": "http://localhost:1200/arstechnica", "priority": 2, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:arstechnica.com&hl=en", "priority": 3, "timeout_ms": 3000},
-      {"type": "scraper", "url": "https://arstechnica.com", "priority": 4, "timeout_ms": 5000}
+      {"type": "official_rss", "url": "", "priority": 1, "timeout_ms": 2000},
+      {"type": "rsshub", "url": "", "priority": 2, "timeout_ms": 2000},
+      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:devshorts.in&hl=en", "priority": 3, "timeout_ms": 3000},
+      {"type": "scraper", "url": "https://www.devshorts.in", "priority": 4, "timeout_ms": 5000}
     ]
   },
   {
-    "name": "Hacker News",
-    "domain": "news.ycombinator.com",
+    "name": "Creator Economy",
     "sources": [
-      {"type": "rsshub", "url": "http://localhost:1200/hackernews", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:news.ycombinator.com&hl=en", "priority": 2, "timeout_ms": 3000},
-      {"type": "scraper", "url": "https://news.ycombinator.com", "priority": 3, "timeout_ms": 5000}
+      {"type": "official_rss", "url": "", "priority": 1, "timeout_ms": 2000},
+      {"type": "rsshub", "url": "", "priority": 2, "timeout_ms": 2000},
+      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:creatoreconomy.so&hl=en", "priority": 3, "timeout_ms": 3000},
+      {"type": "scraper", "url": "https://creatoreconomy.so", "priority": 4, "timeout_ms": 5000}
     ]
   },
   {
-    "name": "Reuters",
-    "domain": "reuters.com",
+    "name": "Artificial Intelligence News",
+    "domain": "artificialintelligence-news.com",
     "sources": [
-      {"type": "rsshub", "url": "http://localhost:1200/reuters/world", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:reuters.com&hl=en", "priority": 2, "timeout_ms": 3000},
-      {"type": "scraper", "url": "https://www.reuters.com/news/world", "priority": 3, "timeout_ms": 5000}
+      {"type": "official_rss", "url": "", "priority": 1, "timeout_ms": 2000},
+      {"type": "rsshub", "url": "", "priority": 2, "timeout_ms": 2000},
+      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:artificialintelligence-news.com&hl=en", "priority": 3, "timeout_ms": 3000},
+      {"type": "scraper", "url": "https://www.artificialintelligence-news.com", "priority": 4, "timeout_ms": 5000}
     ]
   },
   {
-    "name": "Wired",
-    "domain": "wired.com",
+    "name": "TechBuzz",
+    "domain": "techbuzz.ai",
     "sources": [
-      {"type": "official_rss", "url": "https://www.wired.com/feed/rss", "priority": 1, "timeout_ms": 2000},
-      {"type": "rsshub", "url": "http://localhost:1200/wired", "priority": 2, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:wired.com&hl=en", "priority": 3, "timeout_ms": 3000},
-      {"type": "scraper", "url": "https://www.wired.com", "priority": 4, "timeout_ms": 5000}
+      {"type": "official_rss", "url": "https://www.techbuzz.ai/rss", "priority": 1, "timeout_ms": 2000},
+      {"type": "rsshub", "url": "", "priority": 2, "timeout_ms": 2000},
+      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:techbuzz.ai&hl=en", "priority": 3, "timeout_ms": 3000},
+      {"type": "scraper", "url": "https://www.techbuzz.ai", "priority": 4, "timeout_ms": 5000}
     ]
   },
   {
-    "name": "MIT Technology Review",
-    "domain": "technologyreview.com",
+    "name": "MarkTechPost",
+    "domain": "marktechpost.com",
     "sources": [
-      {"type": "official_rss", "url": "https://www.technologyreview.com/feed/", "priority": 1, "timeout_ms": 2000},
-      {"type": "rsshub", "url": "http://localhost:1200/technologyreview", "priority": 2, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:technologyreview.com&hl=en", "priority": 3, "timeout_ms": 3000},
-      {"type": "scraper", "url": "https://www.technologyreview.com", "priority": 4, "timeout_ms": 5000}
+      {"type": "official_rss", "url": "https://www.marktechpost.com/feed/", "priority": 1, "timeout_ms": 2000},
+      {"type": "rsshub", "url": "", "priority": 2, "timeout_ms": 2000},
+      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:marktechpost.com&hl=en", "priority": 3, "timeout_ms": 3000},
+      {"type": "scraper", "url": "https://www.marktechpost.com", "priority": 4, "timeout_ms": 5000}
+    ]
+  },
+  {
+    "name": "VentureBeat",
+    "domain": "venturebeat.com",
+    "sources": [
+      {"type": "official_rss", "url": "https://venturebeat.com/feed/", "priority": 1, "timeout_ms": 2000},
+      {"type": "rsshub", "url": "", "priority": 2, "timeout_ms": 2000},
+      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:venturebeat.com&hl=en", "priority": 3, "timeout_ms": 3000},
+      {"type": "scraper", "url": "https://venturebeat.com", "priority": 4, "timeout_ms": 5000}
+    ]
+  },
+  {
+    "name": "XDA Developers",
+    "domain": "xda-developers.com",
+    "sources": [
+      {"type": "official_rss", "url": "https://www.xda-developers.com/feed/", "priority": 1, "timeout_ms": 2000},
+      {"type": "rsshub", "url": "", "priority": 2, "timeout_ms": 2000},
+      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:xda-developers.com&hl=en", "priority": 3, "timeout_ms": 3000},
+      {"type": "scraper", "url": "https://www.xda-developers.com", "priority": 4, "timeout_ms": 5000}
+    ]
+  },
+  {
+    "name": "AIBase",
+    "domain": "aibase.com",
+    "sources": [
+      {"type": "official_rss", "url": "", "priority": 1, "timeout_ms": 2000},
+      {"type": "rsshub", "url": "https://rsshub.app/aibase/daily", "priority": 2, "timeout_ms": 2000},
+      {"type": "rsshub", "url": "https://rsshub.app/aibase/news", "priority": 2, "timeout_ms": 2000},
+      {"type": "rsshub", "url": "https://rsshub.app/aibase/discover/39-63", "priority": 2, "timeout_ms": 2000},
+      {"type": "rsshub", "url": "https://rsshub.app/aibase/topic/AI", "priority": 2, "timeout_ms": 2000},
+      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:aibase.com&hl=en", "priority": 3, "timeout_ms": 3000},
+      {"type": "scraper", "url": "https://www.aibase.com", "priority": 4, "timeout_ms": 5000}
     ]
   }
 ]
