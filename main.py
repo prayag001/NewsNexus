@@ -69,6 +69,11 @@ DEEP_SCRAPE_TIMEOUT_MS = int(os.environ.get('NEWSNEXUS_DEEP_SCRAPE_TIMEOUT', '30
 DEEP_SCRAPE_SUMMARY_LENGTH = int(os.environ.get('NEWSNEXUS_SUMMARY_LENGTH', '500'))
 DEEP_SCRAPE_PARALLEL_WORKERS = int(os.environ.get('NEWSNEXUS_DEEP_WORKERS', '5'))
 
+# Recent news settings
+MAX_RECENT_DAYS = 15  # Hard cap: Articles older than 15 days are not considered "recent"
+DEFAULT_ARTICLE_COUNT = 10  # Default number of articles when user doesn't specify
+MIN_ARTICLES_THRESHOLD = 5  # Minimum articles before trying next priority source
+
 # =============================================================================
 # LOGGING SETUP
 # =============================================================================
@@ -1424,22 +1429,41 @@ def fetch_all_sources_parallel(sources: List[Dict], domain: str, max_workers: in
 
 def get_articles(domain: str, topic: Optional[str] = None, 
                 location: Optional[str] = None, lastNDays: Optional[int] = None,
-                fast_mode: bool = False) -> Dict:
+                fast_mode: bool = False, count: Optional[int] = None) -> Dict:
     """
     Main function to retrieve articles using 4-layer fallback strategy.
+    
+    IMPORTANT RULES:
+    1. "Recent" means maximum 15 days old (MAX_RECENT_DAYS)
+    2. Default is 10 articles when count not specified
+    3. Articles returned in reverse chronological order (newest first)
+    4. If a priority source has insufficient articles, try next priority
+    5. If no articles found in 15 days after all priorities, return empty with explanation
     
     Args:
         domain: The domain to fetch articles from
         topic: Optional topic keyword filter
         location: Optional location keyword filter
-        lastNDays: Optional number of days to look back
+        lastNDays: Days to look back (capped at MAX_RECENT_DAYS=15 for "recent" news)
         fast_mode: If True, skip straight to Google News RSS (fastest source)
+        count: Number of articles to return (default: DEFAULT_ARTICLE_COUNT=10)
     
     Returns:
-        Dict with sourceUsed, articles list, and metadata
+        Dict with sourceUsed, articles list, metadata, and user-friendly messages
     """
     start_time = time.time()
     metrics.increment('get_articles_requests')
+    
+    # Set defaults and enforce caps
+    if count is None:
+        count = DEFAULT_ARTICLE_COUNT
+    
+    # Enforce 15-day cap for "recent" news
+    if lastNDays is None:
+        lastNDays = MAX_RECENT_DAYS  # Default to 15 days for recent news
+    elif lastNDays > MAX_RECENT_DAYS:
+        logger.info("Capping lastNDays from %d to %d (MAX_RECENT_DAYS)", lastNDays, MAX_RECENT_DAYS)
+        lastNDays = MAX_RECENT_DAYS
     
     # Input validation
     valid, error = validate_domain(domain)
@@ -1536,16 +1560,19 @@ def get_articles(domain: str, topic: Optional[str] = None,
                     break
     else:
         # Sequential fetching (default)
-        for source in sources:
+        logger.info("Starting sequential fetch for %d sources", len(sources),
+                   extra={'domain': domain, 'source_count': len(sources)})
+        for idx, source in enumerate(sources, 1):
             source_type = source.get('type', 'unknown')
             url = source.get('url', '')
             timeout = source.get('timeout_ms', DEFAULT_TIMEOUT_MS) / 1000
             
-            logger.info("Trying %s: %s", source_type, url,
+            logger.info("Trying source %d/%d: %s: %s", idx, len(sources), source_type, url,
                        extra={'domain': domain, 'source_type': source_type})
             
             response = fetch_with_retry(url, timeout)
             if not response:
+                logger.info("No response from %s, continuing to next source", source_type)
                 continue
             
             articles = []
@@ -1596,22 +1623,62 @@ def get_articles(domain: str, topic: Optional[str] = None,
             logger.info("Filtered to %d articles", len(filtered),
                        extra={'article_count': len(filtered)})
             
+            # Only accept result if we have enough articles (threshold defined at top)
             if filtered:
-                result = {
-                    "sourceUsed": f"{source_type} ({url})",
-                    "articles": filtered,
-                    "cached": False
-                }
-                break
+                if len(filtered) >= MIN_ARTICLES_THRESHOLD:
+                    # We have enough articles, use this source
+                    logger.info("Found %d articles from %s (>= threshold %d), using this source", 
+                               len(filtered), source_type, MIN_ARTICLES_THRESHOLD)
+                    result = {
+                        "sourceUsed": f"{source_type} ({url})",
+                        "articles": filtered,
+                        "cached": False
+                    }
+                    break
+                else:
+                    # Not enough articles, try next source but keep this as fallback
+                    logger.info("Found only %d articles from %s (< threshold %d), trying next source", 
+                               len(filtered), source_type, MIN_ARTICLES_THRESHOLD)
+                    if result is None or len(filtered) > len(result.get('articles', [])):
+                        # Keep this result as fallback if it's better than what we have
+                        result = {
+                            "sourceUsed": f"{source_type} ({url})",
+                            "articles": filtered,
+                            "cached": False
+                        }
+                        logger.info("Kept %s as fallback with %d articles", source_type, len(filtered))
+                    # Continue to next source
+            else:
+                logger.info("No articles passed filters from %s, trying next source", source_type)
     
-    # Build final result
+    # Build final result with user-friendly messaging
     if result is None:
         logger.info("All sources exhausted for domain: %s", domain)
         metrics.increment('get_articles_no_results')
-        result = {"sourceUsed": "none", "articles": [], "cached": False}
+        result = {
+            "sourceUsed": "none",
+            "articles": [],
+            "cached": False,
+            "message": f"No articles found from {domain} in the last {lastNDays} days. "
+                      f"Tried all available sources (official RSS, RSSHub, Google News, scraper). "
+                      f"This site may not have published recent content or may be blocking our requests."
+        }
     else:
+        # Sort articles by date (reverse chronological - newest first)
+        articles = result.get('articles', [])
+        if articles:
+            articles.sort(key=lambda x: x.get('published_at', ''), reverse=True)
+            # Limit to requested count
+            result['articles'] = articles[:count]
+        
         metrics.increment('get_articles_success')
         metrics.increment('articles_returned', len(result['articles']))
+        
+        # Add helpful message if we found fewer than requested
+        if len(result['articles']) < count:
+            result['message'] = (f"Found {len(result['articles'])} articles (requested {count}) "
+                                f"from last {lastNDays} days. This is all the recent content available.")
+        
         # Cache successful results
         cache.set(domain, result, topic_clean, location_clean, last_n_days)
     
@@ -1630,18 +1697,35 @@ def get_articles(domain: str, topic: Optional[str] = None,
 # HEALTH & METRICS
 # =============================================================================
 
-def get_top_news(count: int = 8, topic: Optional[str] = None, location: Optional[str] = None, 
+def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, location: Optional[str] = None, 
                   lastNDays: Optional[int] = None) -> Dict:
     """
     Aggregate top news from ALL configured domains.
-    Fetches from each domain and merges results sorted by date.
+    Fetches from each domain and merges results sorted by date (reverse chronological).
+    
+    Args:
+        count: Number of articles to return (default: DEFAULT_ARTICLE_COUNT=10)
+        topic: Optional topic filter
+        location: Optional location filter
+        lastNDays: Days to look back (capped at MAX_RECENT_DAYS=15)
     """
     start_time = time.time()
     metrics.increment('get_top_news_requests')
     
+    # Set defaults and enforce caps
+    if count is None:
+        count = DEFAULT_ARTICLE_COUNT
+    
+    # Enforce 15-day cap for recent news
+    if lastNDays is None:
+        lastNDays = MAX_RECENT_DAYS
+    elif lastNDays > MAX_RECENT_DAYS:
+        logger.info("Capping lastNDays from %d to %d for top news", lastNDays, MAX_RECENT_DAYS)
+        lastNDays = MAX_RECENT_DAYS
+    
     # Validate count
     if count < 1:
-        count = 8
+        count = DEFAULT_ARTICLE_COUNT
     if count > MAX_ARTICLES_PER_REQUEST:
         count = MAX_ARTICLES_PER_REQUEST
     
@@ -1828,7 +1912,7 @@ def handle_request(request: Dict) -> Optional[Dict]:
                 "tools": [
                     {
                         "name": "get_articles",
-                        "description": "Retrieve articles from a specified domain using multi-layer fallback strategy (Official RSS → RSSHub → Google News RSS → Scraper). Supports filtering by topic, location, and date range.",
+                        "description": "Retrieve RECENT articles from a domain (max 15 days old). Uses 4-layer fallback (Official RSS → RSSHub → Google News → Scraper). Returns newest first in reverse chronological order. Default: 10 articles from last 15 days.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -1846,9 +1930,22 @@ def handle_request(request: Dict) -> Optional[Dict]:
                                 },
                                 "lastNDays": {
                                     "type": "integer",
-                                    "description": "Optional number of days to look back (1-365)",
+                                    "description": "Days to look back (1-15, default: 15). For 'recent' news, capped at 15 days max",
                                     "minimum": 1,
-                                    "maximum": 365
+                                    "maximum": 15,
+                                    "default": 15
+                                },
+                                "count": {
+                                    "type": "integer",
+                                    "description": "Number of articles to return (default: 10 when user says 'recent/top/latest' without number)",
+                                    "minimum": 1,
+                                    "maximum": 50,
+                                    "default": 10
+                                },
+                                "fast_mode": {
+                                    "type": "boolean",
+                                    "description": "Skip to Google News directly (faster but may miss some articles)",
+                                    "default": false
                                 }
                             },
                             "required": ["domain"]
@@ -1874,14 +1971,16 @@ def handle_request(request: Dict) -> Optional[Dict]:
                     },
                     {
                         "name": "get_top_news",
-                        "description": "Aggregate top news from ALL configured domains (techcrunch, bbc, reuters, etc). Fetches from each domain and returns the most recent articles sorted by date.",
+                        "description": "Aggregate top RECENT news from ALL configured domains. Returns newest first. Default: 10 articles from last 15 days across all priority sites.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
                                 "count": {
                                     "type": "integer",
-                                    "description": "Number of top articles to return (default: 8, max: 50)",
-                                    "default": 8
+                                    "description": "Number of articles to return (default: 10, max: 50)",
+                                    "default": 10,
+                                    "minimum": 1,
+                                    "maximum": 50
                                 },
                                 "topic": {
                                     "type": "string",
@@ -1893,9 +1992,10 @@ def handle_request(request: Dict) -> Optional[Dict]:
                                 },
                                 "lastNDays": {
                                     "type": "integer",
-                                    "description": "Optional number of days to look back (1-365)",
+                                    "description": "Days to look back (1-15, default: 15). Capped at 15 for recent news",
+                                    "default": 15,
                                     "minimum": 1,
-                                    "maximum": 365
+                                    "maximum": 15
                                 }
                             },
                             "required": []
