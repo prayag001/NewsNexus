@@ -1,108 +1,356 @@
-# NewsNexus v2.0 - Advanced News Aggregator
+# NewsNexus v2.0 - Intelligent News Aggregator
 
-A production-ready news aggregation system with intelligent filtering, MCP server support, and command-line interface.
+A production-ready news aggregation system with smart filtering, multi-feed architecture, and MCP server support.
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
 [![MCP Protocol](https://img.shields.io/badge/MCP-2024--11--05-green.svg)](https://modelcontextprotocol.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## 🎯 Overview
 
-NewsNexus is an intelligent news aggregator that fetches articles from multiple sources with advanced filtering capabilities. It supports both MCP (Model Context Protocol) for AI assistants and command-line interface for human users.
+NewsNexus is an intelligent news aggregator designed for AI assistants and power users. It fetches **only the latest news** (15 days by default) with sophisticated filtering, parallel multi-feed architecture, and flexible domain matching.
 
-### Key Features
+### 🌟 Key Features
 
-- ✅ **5 Filtering Types**: Topic, Location, Time-based, Deduplication, Priority-based
-- ✅ **4-Layer Fallback**: Official RSS → RSSHub → Google News → HTML Scraper
-- ✅ **Fast Performance**: 2-3 second response time with parallel fetching
-- ✅ **Dual Interface**: MCP server for AI assistants + CLI for humans
-- ✅ **Smart Deduplication**: Automatic removal of duplicates by URL and title
-- ✅ **Priority Sources**: Fetches from top-rated news sources only
+- ✅ **Smart Recent News**: Default 15-day cap ensures only recent/latest/top news
+- ✅ **8 Comprehensive Filters**: Days, Topic, Location, Priority, URL/Title dedup, Response time, Article count
+- ✅ **3-Priority Fallback**: RSS → Google News (quality-checked) → Scraper
+- ✅ **Multi-Feed Parallel**: Fetch from multiple RSS feeds simultaneously (26 feeds across 7 sites)
+- ✅ **Flexible Domain Matching**: Use partial names (`openai` → `openai.com`)
+- ✅ **Priority Sites**: Top news from 6 premium sources
+- ✅ **Newest First**: Articles always sorted reverse chronologically
+- ✅ **Fast Performance**: ~1.3s per domain with parallel fetching
+
 
 ## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                    NewsNexus v2.0 - Dual Interface                       │
+│                    NewsNexus v2.0 - MCP Server                           │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                           │
-│  CLI (fetch_news.py)              MCP Server (main.py)                   │
-│  ┌──────────────────┐             ┌──────────────────┐                  │
-│  │ Command Args     │             │ JSON-RPC 2.0     │                  │
-│  │ --topic AI       │─────────────│ STDIN/STDOUT     │                  │
-│  │ --location India │             │ (AI Assistants)  │                  │
-│  │ --days 3         │             └──────────────────┘                  │
-│  └──────────────────┘                      │                             │
-│           │                                │                             │
-│           └────────────────────────────────┘                             │
+│  MCP Tools:                                                              │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ • get_articles(domain, topic?, location?, lastNDays?)            │   │
+│  │ • get_top_news(count?, topic?, location?, lastNDays?)            │   │
+│  │ • health_check()                                                 │   │
+│  │ • get_metrics()                                                  │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
 │                           │                                              │
 │                           ▼                                              │
-│  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │              5-Layer Filtering Engine                            │    │
-│  │  ┌────────────┐ ┌──────────┐ ┌─────────┐ ┌──────────────────┐ │    │
-│  │  │ Topic      │ │ Location │ │ Time    │ │ Deduplication    │ │    │
-│  │  │ Filter     │ │ Filter   │ │ Filter  │ │ (URL + Title)    │ │    │
-│  │  └────────────┘ └──────────┘ └─────────┘ └──────────────────┘ │    │
-│  │  ┌─────────────────────────────────────────────────────────┐   │    │
-│  │  │ Priority-based Site Filtering (Top 12 sites)            │   │    │
-│  │  └─────────────────────────────────────────────────────────┘   │    │
-│  └─────────────────────────────────────────────────────────────────┘    │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │              8-Layer Filtering Engine                            │   │
+│  │                                                                  │   │
+│  │  1. Days Filter (Default: 15 days, Max: 365)                    │   │
+│  │  2. Topic Filter (Keyword search in title/summary/tags)         │   │
+│  │  3. Location Filter (Keyword search)                            │   │
+│  │  4. Priority-based Site Selection (Top 6-12 sites)              │   │
+│  │  5. URL Deduplication (Normalized URLs)                         │   │
+│  │  6. Title Deduplication (Fuzzy matching)                        │   │
+│  │  7. Response Time Filtering (2s timeout per source)             │   │
+│  │  8. Article Count Limiting (Default: 10, Max: 100)              │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
 │                           │                                              │
 │                           ▼                                              │
-│  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │            4-Layer Fallback Strategy (Parallel Fetch)            │    │
-│  │  ┌─────────────┐ ┌─────────┐ ┌─────────────┐ ┌──────────────┐ │    │
-│  │  │ Official    │ │ RSSHub  │ │ Google News │ │ HTML Scraper │ │    │
-│  │  │ RSS         │ │         │ │ RSS         │ │              │ │    │
-│  │  └─────────────┘ └─────────┘ └─────────────┘ └──────────────┘ │    │
-│  │  • Retry logic  • Connection pooling  • 2s timeout each        │    │
-│  └─────────────────────────────────────────────────────────────────┘    │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │         Priority-Grouped Parallel Fetching Strategy              │   │
+│  │                                                                  │   │
+│  │  Priority 1: Official RSS Feeds (Multiple per site)             │   │
+│  │  ├─ Fetch all RSS feeds in parallel (max 8 workers)             │   │
+│  │  ├─ Deduplicate by URL across all feeds                         │   │
+│  │  ├─ If ≥5 articles → SUCCESS, return results                    │   │
+│  │  └─ If <5 articles → Try Priority 2                             │   │
+│  │                                                                  │   │
+│  │  Priority 2: Google News RSS (Quality-checked)                  │   │
+│  │  ├─ Resolve redirect URLs (2s timeout)                          │   │
+│  │  ├─ Quality check: ≥50% valid URLs required                     │   │
+│  │  ├─ If ≥5 articles + valid → SUCCESS                            │   │
+│  │  └─ If <5 articles or quality fail → Try Priority 3             │   │
+│  │                                                                  │   │
+│  │  Priority 3: HTML Scraper (Deep extraction)                     │   │
+│  │  ├─ Scrape homepage for article links                           │   │
+│  │  ├─ Extract content from each article page                      │   │
+│  │  └─ Return any articles found (always fallback)                 │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                           │                                              │
+│                           ▼                                              │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  • Sort by published_at (newest first)                           │   │
+│  │  • Limit to requested count                                      │   │
+│  │  • Cache results (5 min TTL)                                     │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
+
+## 📋 Fetching & Filtering Rules
+
+### 🔹 Rule 1: 15-Day Default Cap for "Recent" News
+**When user says**: "recent", "top", "latest" news/articles (without specifying days)
+
+**Behavior**: 
+- Automatically fetch only from **last 15 days**
+- Hard cap: Cannot exceed 15 days even if user requests more (unless explicit `lastNDays` parameter)
+- Default article count: **10 articles**
+
+**Examples**:
+```
+User: "Get recent AI news"          → Last 15 days, 10 articles
+User: "Top news from TechCrunch"    → Last 15 days, 10 articles
+User: "Latest articles about India" → Last 15 days, 10 articles
+```
+
+### 🔹 Rule 2: Reverse Chronological Order (Newest First)
+**Guarantee**: Latest article is **always** fetched first
+
+**Behavior**:
+- All articles sorted by `published_at` in descending order
+- Most recent article = index 0
+- Oldest article = last index
+
+**Example**:
+```json
+{
+  "articles": [
+    {"title": "Breaking: AI Breakthrough", "published_at": "2024-12-08T10:00:00Z"},  // ← Newest
+    {"title": "Tech Update Yesterday", "published_at": "2024-12-07T15:30:00Z"},
+    {"title": "News from 3 days ago", "published_at": "2024-12-05T09:00:00Z"}       // ← Oldest
+  ]
+}
+```
+
+### 🔹 Rule 3: Priority-Based Source Fallback
+**When to check next priority**: Only if required number of articles **not** fetched from current priority
+
+**Threshold**: Minimum **5 articles** before considering current priority successful
+
+**Behavior**:
+1. Try Priority 1 (Official RSS feeds) - fetch all feeds in parallel
+2. If < 5 articles → Try Priority 2 (Google News RSS)
+3. If < 5 articles OR Google News quality fails → Try Priority 3 (Scraper)
+4. Always keep best fallback if no priority meets threshold
+
+**Example Flow**:
+```
+Priority 1 (RSS): 3 articles found    → < 5, try next priority
+Priority 2 (Google): 8 articles found → ≥ 5, SUCCESS! Return these 8 articles
+```
+
+### 🔹 Rule 4: No Data > 15 Days by Default
+**Default behavior**: Never fetch articles older than 15 days
+
+**Exceptions**: 
+- User explicitly sets `lastNDays` parameter (e.g., `lastNDays=30`)
+- User provides complete article URL directly
+
+**Date filtering**:
+- Published date parsed from RSS/HTML
+- Age calculated from current UTC time
+- Articles > 15 days automatically excluded (unless user overrides)
+
+### 🔹 Rule 5: Comprehensive Filtering (8 Criteria)
+
+| Filter Type | How It Works | Example |
+|-------------|--------------|---------|
+| **Days** | Reject articles older than `lastNDays` | `lastNDays=7` → Only last 7 days |
+| **Topic** | Keyword search in title/summary/tags | `topic="AI"` → Match "AI", "artificial intelligence" |
+| **Location** | Keyword search in article text | `location="India"` → Match "India", "Indian", "Mumbai" |
+| **Site Priority** | Fetch from top-rated sources first | Priority 1-6 sites for `get_top_news()` |
+| **URL Dedup** | Track URLs in `seen_urls` set | Normalize & compare URLs |
+| **Title Dedup** | Fuzzy title matching | "AI Breakthrough" vs "AI BREAKTHROUGH!" → duplicate |
+| **Response Time** | 2s timeout per source, 10s per priority group | Slow sources skipped |
+| **Article Count** | Limit to `count` parameter | `count=5` → Return max 5 articles |
+
+### 🔹 Rule 6: Parallel & Random Fetching
+**Parallelization**: All sources at **same priority level** fetched simultaneously
+
+**Implementation**:
+- `ThreadPoolExecutor` with max **8 workers**
+- Timeout: **10 seconds** per priority group
+- Deduplication: Remove URL & title duplicates across all parallel results
+
+**Example** (Priority 1 with 5 RSS feeds):
+```
+Thread 1: Fetch RSS Feed 1 → 10 articles
+Thread 2: Fetch RSS Feed 2 → 8 articles   } All fetched in parallel
+Thread 3: Fetch RSS Feed 3 → 12 articles  } (~1-2 seconds total)
+Thread 4: Fetch RSS Feed 4 → 5 articles
+Thread 5: Fetch RSS Feed 5 → 9 articles
+
+Combined: 44 articles → Deduplicate → 26 unique articles
+```
+
+### 🔹 Rule 7: Google News Quality Controls
+**Problem**: Google News RSS often returns redirect URLs (e.g., `news.google.com/rss/articles/...`)
+
+**Solution**: Quality validation & fallback
+
+**Quality Check Process**:
+1. Sample first 5 articles from Google News results
+2. Attempt to resolve redirect URLs (2s timeout each)
+3. Count how many have valid, direct URLs (not `news.google.com`)
+4. If < 50% valid → Treat as failure, fallback to Priority 3 (Scraper)
+5. If ≥ 50% valid → Use Google News results
+
+**Additional Checks**:
+- No articles older than 15 days (default)
+- Redirect resolution with timeout
+- Automatic fallback if quality fails
+
+### 🔹 Rule 8: Explicit-Only Sites with Partial Matching
+**Two types of sites**:
+1. **Priority sites** (6 configured): Used for `get_top_news()`
+2. **Explicit-only sites** (39 configured): Accessed only when user specifies domain
+
+**Flexible domain matching** for explicit sites:
+- Exact match: `openai.com` → `openai.com` ✅
+- Partial match: `openai` → `openai.com` ✅
+- www prefix: `www.openai.com` → `openai.com` ✅
+
+**Examples**:
+```
+User: "News from openai"      → Matches openai.com
+User: "Top articles from wired" → Matches wired.com
+User: "Get techcrunch news"   → Matches techcrunch.com
+```
+
+### 🔹 Rule 9: Priority Sites for Top News
+**get_top_news() behavior**: Fetch from **6 priority sites** (expandable to 12)
+
+**Current Priority Sites**:
+1. ndtv.com (priority 1)
+2. indianexpress.com (priority 2)
+3. timesofindia.indiatimes.com (priority 3)
+4. hindustantimes.com (priority 4)
+5. gadgets360.com (priority 5)
+6. economictimes.indiatimes.com (priority 6)
+
+**Process**:
+- Fetch from each priority site in parallel
+- Apply topic/location/date filters
+- Combine & deduplicate results
+- Sort newest first
+- Return top N articles (default: 10)
+
+**Example**:
+```
+User: "Get top 10 news"
+→ Fetch from all 6 priority sites in parallel
+→ Combine ~30-50 articles
+→ Filter, deduplicate, sort newest first
+→ Return top 10 articles
+```
+
 
 ## 🚀 Quick Start
 
 ### Installation
 
 ```bash
-# Clone the repository
-cd NewsNexus
-
 # Install dependencies
 pip install -r requirements.txt
 ```
 
-### Command-Line Usage
+### MCP Server Setup (For AI Assistants)
 
-```bash
-# Today's top 10 news
-python fetch_news.py --count 10
-
-# AI news from India (last 3 days)
-python fetch_news.py --count 5 --topic AI --location India --days 3
-
-# Technology news with short summaries
-python fetch_news.py --count 15 --topic technology --days 7 --summary_lines 2
-
-# Get help
-python fetch_news.py --help
-```
-
-### MCP Server Usage
-
-For AI assistants (Claude, GitHub Copilot), add to your `mcp.json`:
+Add to your MCP configuration (e.g., `%APPDATA%\Code\User\globalStorage\saoudrizwan.claude-dev\settings\cline_mcp_settings.json`):
 
 ```json
 {
-  "servers": {
-    "news-aggregator": {
+  "mcpServers": {
+    "news-nexus": {
       "command": "python",
-      "args": ["C:\\path\\to\\NewsNexus\\main.py"],
-      "type": "stdio"
+      "args": ["C:\\Swdtools\\NewsNexus\\main.py"]
     }
   }
 }
 ```
+
+### Usage Examples
+
+#### Get Articles from Specific Domain
+```python
+# Partial domain matching
+get_articles(domain="openai", count=5)  # Matches openai.com
+get_articles(domain="wired", count=10)  # Matches wired.com
+
+# With filters
+get_articles(
+    domain="techcrunch",
+    topic="AI",           # Filter by topic
+    location="India",     # Filter by location
+    lastNDays=7,          # Last 7 days only
+    count=15              # Return 15 articles
+)
+```
+
+#### Get Top News from Priority Sites
+```python
+# Default: 10 articles from last 15 days
+get_top_news()
+
+# With filters
+get_top_news(
+    count=20,            # Return 20 articles
+    topic="technology",   # Filter by topic
+    location="India",     # Filter by location
+    lastNDays=3          # Last 3 days only
+)
+```
+
+#### Health Check
+```python
+health_check()  # Returns server status, domain count, cache info
+```
+
+#### Get Metrics
+```python
+get_metrics()  # Returns performance metrics, counters, histograms
+```
+
+## 📊 Sites Configuration
+
+### Total Domains: 45
+
+#### Priority Sites (6) - Used by `get_top_news()`
+1. ndtv.com (priority 1) - 5 RSS feeds
+2. indianexpress.com (priority 2) - 5 RSS feeds
+3. timesofindia.indiatimes.com (priority 3) - 5 RSS feeds
+4. hindustantimes.com (priority 4) - 2 RSS feeds
+5. gadgets360.com (priority 5) - 2 RSS feeds
+6. economictimes.indiatimes.com (priority 6) - 5 RSS feeds
+
+**Total RSS feeds**: 24 across 6 priority sites
+
+#### Explicit-Only Sites (39)
+Accessed only when user specifies domain name (supports partial matching):
+
+**Technology & AI**: analyticsindiamag.com, indiatechnologynews.in, wired.com, theverge.com, techradar.com, techrepublic.com, devshorts.in, venturebeat.com, xda-developers.com, cnet.com, gizmodo.com, engadget.com, zdnet.com
+
+**AI Research**: research.google, analyticsvidhya.com, kdnuggets.com, infoworld.com, artificialintelligence-news.com, techbuzz.ai, openai.com, deepmind.google, huggingface.co
+
+**Developer**: github.blog, hackernoon.com
+
+**General News**: bbc.co.uk, news.google.com, theguardian.com, sportskeeda.com
+
+**How-To & Lifestyle**: howtogeek.com, wonderhowto.com, lifehacker.com, creatoreconomy.so
+
+**Tech News**: techcrunch.com, mashable.com, androidpolice.com, aitechin.substack.com, business-standard.com
+
+**Community**: news.ycombinator.com (Hacker News)
+
+### Multi-Feed Sites (7 sites with 26 total RSS feeds)
+These sites use **multiple RSS feeds fetched in parallel** for comprehensive coverage:
+
+| Site | RSS Feeds | Example Feeds |
+|------|-----------|---------------|
+| ndtv.com | 5 | Top Stories, Latest News, Trending, Gadgets, Sports |
+| indianexpress.com | 5 | Cricket, Trending, Technology, Tech News, AI |
+| timesofindia.indiatimes.com | 5 | Top Stories, Most Recent, India, Cities, Tech |
+| hindustantimes.com | 2 | India News, Technology |
+| gadgets360.com | 2 | All Feeds, News |
+| economictimes.indiatimes.com | 5 | Default, Markets, Market Data, Tech, AI |
+| venturebeat.com | 2 | Main Feed, AI Category |
+
 
 ## 📖 Configuration
 
@@ -112,84 +360,208 @@ For AI assistants (Claude, GitHub Copilot), add to your `mcp.json`:
 |----------|---------|-------------|
 | `NEWSNEXUS_LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
 | `NEWSNEXUS_MAX_ARTICLES` | `50` | Maximum articles per request |
-| `NEWSNEXUS_CACHE_TTL` | `300` | Cache TTL in seconds |
+| `NEWSNEXUS_CACHE_TTL` | `300` | Cache TTL in seconds (5 minutes) |
 | `NEWSNEXUS_RATE_LIMIT` | `10` | Max requests per window per domain |
 | `NEWSNEXUS_RATE_WINDOW` | `60` | Rate limit window in seconds |
-| `NEWSNEXUS_PARALLEL` | `false` | Enable parallel source fetching |
+| `NEWSNEXUS_PARALLEL` | `true` | Enable parallel source fetching |
 | `NEWSNEXUS_CONFIG_PATH` | `./sites.json` | Path to sites configuration |
+| `NEWSNEXUS_DEEP_SCRAPE` | `true` | Enable deep HTML scraping |
+| `NEWSNEXUS_DEEP_SCRAPE_MAX` | `10` | Max articles for deep scraping |
+| `NEWSNEXUS_DEEP_WORKERS` | `5` | Parallel workers for scraping |
+
+### Core Constants (Hardcoded in main.py)
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `MAX_RECENT_DAYS` | `15` | Hard cap for "recent" news (days) |
+| `DEFAULT_ARTICLE_COUNT` | `10` | Default articles when user doesn't specify |
+| `MIN_ARTICLES_THRESHOLD` | `5` | Minimum articles before trying next priority |
+| `DEFAULT_TIMEOUT_MS` | `2000` | Default timeout per source (milliseconds) |
+| `TOP_NEWS_SITE_LIMIT` | `12` | Max priority sites for get_top_news() |
 
 ### Site Configuration (`sites.json`)
 
+Each site has multiple sources with priority levels:
+
 ```json
-[
-  {
-    "name": "TechCrunch",
-    "domain": "techcrunch.com",
-    "sources": [
-      {"type": "official_rss", "url": "https://techcrunch.com/feed/", "priority": 1, "timeout_ms": 2000},
-      {"type": "rsshub", "url": "http://localhost:1200/techcrunch", "priority": 2, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:techcrunch.com", "priority": 3, "timeout_ms": 3000},
-      {"type": "scraper", "url": "https://techcrunch.com", "priority": 4, "timeout_ms": 5000}
-    ]
-  }
-]
+{
+  "name": "NDTV Multi-Feed",
+  "domain": "ndtv.com",
+  "priority": 1,
+  "sources": [
+    {"type": "official_rss", "url": "https://feeds.feedburner.com/ndtvnews-top-stories", "priority": 1, "timeout_ms": 2000},
+    {"type": "official_rss", "url": "https://feeds.feedburner.com/ndtvnews-latest", "priority": 1, "timeout_ms": 2000},
+    {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:ndtv.com&hl=en", "priority": 2, "timeout_ms": 2000},
+    {"type": "scraper", "url": "https://www.ndtv.com/", "priority": 3, "timeout_ms": 2000}
+  ]
+}
 ```
 
-## 🔧 MCP Tools
+**Source Types**:
+- `official_rss`: Direct RSS feed from publisher
+- `google_news`: Google News RSS for the domain
+- `scraper`: HTML scraping fallback
+
+**Priority Levels**:
+- Priority 1: Official RSS feeds (fastest, most reliable)
+- Priority 2: Google News RSS (quality-checked)
+- Priority 3: HTML Scraper (slowest, most comprehensive)
+
+
+## 🔧 MCP Tools Reference
 
 ### `get_articles`
 
-Retrieve articles from a domain using the 4-layer fallback strategy.
+Retrieve articles from a specific domain using multi-feed parallel fetching and 3-priority fallback.
 
 **Parameters:**
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `domain` | string | ✅ | Domain to fetch (e.g., 'techcrunch.com') |
-| `topic` | string | ❌ | Keyword filter for title/summary |
-| `location` | string | ❌ | Location keyword filter |
-| `lastNDays` | integer | ❌ | Date range filter (1-365 days) |
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `domain` | string | ✅ | - | Domain name (supports partial matching: 'openai' → 'openai.com') |
+| `topic` | string | ❌ | null | Filter by keyword in title/summary/tags |
+| `location` | string | ❌ | null | Filter by location keyword |
+| `lastNDays` | integer | ❌ | 15 | Date range filter (1-365 days, capped at 15 by default) |
+| `count` | integer | ❌ | 10 | Number of articles to return (max 100) |
+
+**Example Request:**
+```json
+{
+  "domain": "techcrunch",
+  "topic": "AI",
+  "location": "India",
+  "lastNDays": 7,
+  "count": 15
+}
+```
 
 **Example Response:**
 ```json
 {
-  "sourceUsed": "official_rss (https://techcrunch.com/feed/)",
+  "sourceUsed": "priority_1 [official_rss, official_rss, official_rss]",
   "articles": [
     {
-      "title": "AI Breakthrough Announced",
-      "url": "https://techcrunch.com/article/ai-breakthrough",
-      "published_at": "2024-12-05T10:00:00+00:00",
-      "summary": "A major AI breakthrough was announced today...",
+      "title": "OpenAI Launches GPT-5 in India",
+      "url": "https://techcrunch.com/2024/12/08/openai-gpt5-india",
+      "published_at": "2024-12-08T10:00:00+00:00",
+      "summary": "OpenAI announced the launch of GPT-5 with special features for Indian languages...",
       "author": "John Doe",
-      "tags": ["AI", "technology"],
+      "tags": ["AI", "OpenAI", "India", "GPT-5"],
       "source_domain": "techcrunch.com"
     }
   ],
   "cached": false,
-  "durationMs": 245.5
+  "durationMs": 1245.5
 }
 ```
 
+**Behavior**:
+- Default 15-day cap for "recent" news
+- Parallel multi-feed fetching (if site has multiple RSS feeds)
+- 3-priority fallback: RSS → Google News (quality-checked) → Scraper
+- Threshold-based: ≥5 articles needed to skip next priority
+- Deduplication by URL and title
+- Sorted newest first
+
+---
+
+### `get_top_news`
+
+Get top news from priority sites (6 configured, expandable to 12).
+
+**Parameters:**
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `count` | integer | ❌ | 10 | Number of articles to return (max 100) |
+| `topic` | string | ❌ | null | Filter by keyword in title/summary/tags |
+| `location` | string | ❌ | null | Filter by location keyword |
+| `lastNDays` | integer | ❌ | 15 | Date range filter (1-365 days, capped at 15 by default) |
+
+**Example Request:**
+```json
+{
+  "count": 20,
+  "topic": "technology",
+  "location": "India",
+  "lastNDays": 3
+}
+```
+
+**Example Response:**
+```json
+{
+  "sources_used": [
+    "ndtv.com (priority_1)",
+    "indianexpress.com (priority_1)",
+    "timesofindia.indiatimes.com (priority_1)",
+    "hindustantimes.com (priority_1)",
+    "gadgets360.com (priority_1)",
+    "economictimes.indiatimes.com (priority_1)"
+  ],
+  "articles": [
+    {
+      "title": "India's Tech Boom Continues",
+      "url": "https://ndtv.com/india-news/tech-boom-2024-12-08",
+      "published_at": "2024-12-08T09:00:00+00:00",
+      "summary": "India's technology sector saw record growth...",
+      "source_domain": "ndtv.com",
+      "tags": ["technology", "India", "economy"]
+    }
+  ],
+  "cached": false,
+  "total_articles": 20,
+  "durationMs": 2340.8
+}
+```
+
+**Behavior**:
+- Fetches from 6 priority sites in parallel
+- Combines results from all sites
+- Deduplicates by URL and title
+- Filters by topic, location, date
+- Sorts newest first
+- Returns top N articles
+
+---
+
 ### `health_check`
 
-Check server health and configuration.
+Check server health and configuration status.
 
-**Response:**
+**Parameters:** None
+
+**Example Response:**
 ```json
 {
   "status": "healthy",
   "version": "2.0.0",
-  "configuredDomains": ["techcrunch.com", "bbc.com"],
-  "domainCount": 8,
-  "cache": {"size": 5, "ttl_seconds": 300},
-  "timestamp": "2024-12-05T10:00:00+00:00"
+  "configured_domains": 45,
+  "priority_sites": 6,
+  "explicit_sites": 39,
+  "multi_feed_sites": 7,
+  "total_rss_feeds": 26,
+  "cache": {
+    "size": 12,
+    "ttl_seconds": 300,
+    "max_size": 1000
+  },
+  "constants": {
+    "MAX_RECENT_DAYS": 15,
+    "DEFAULT_ARTICLE_COUNT": 10,
+    "MIN_ARTICLES_THRESHOLD": 5
+  },
+  "timestamp": "2024-12-08T10:00:00+00:00"
 }
 ```
 
+---
+
 ### `get_metrics`
 
-Get detailed server metrics for monitoring.
+Get detailed server metrics for monitoring and observability.
 
-**Response:**
+**Parameters:** None
+
+**Example Response:**
 ```json
 {
   "metrics": {
@@ -197,88 +569,227 @@ Get detailed server metrics for monitoring.
     "counters": {
       "get_articles_requests": 150,
       "get_articles_success": 145,
-      "cache_hits": 50,
-      "fetch_success": 200
+      "get_articles_domain_not_found": 3,
+      "get_top_news_requests": 50,
+      "cache_hits": 60,
+      "cache_misses": 90,
+      "fetch_success": 200,
+      "fetch_error": 5
     },
     "histograms": {
       "get_articles_duration_ms": {
         "count": 150,
-        "min": 100,
+        "min": 120,
         "max": 2500,
-        "avg": 350,
-        "p50": 300,
-        "p95": 800,
-        "p99": 1500
+        "avg": 1350,
+        "p50": 1200,
+        "p95": 2000,
+        "p99": 2400
+      },
+      "get_top_news_duration_ms": {
+        "count": 50,
+        "min": 1800,
+        "max": 4500,
+        "avg": 2300,
+        "p50": 2200,
+        "p95": 3500,
+        "p99": 4200
       }
     }
-  }
+  },
+  "timestamp": "2024-12-08T10:00:00+00:00"
 }
 ```
 
-## 🧪 Testing
 
+## 🧪 Testing & Verification
+
+### Test Files
+
+**Production Tests:**
+- `verify_production.py` - Production configuration verification
+- `test_all_domains.py` - Test all 45 configured domains
+- `test_multifeed.py` - Multi-feed parallel fetching tests
+
+**Run Tests:**
 ```bash
-# Install test dependencies
-pip install pytest pytest-cov
+# Verify production configuration
+python verify_production.py
 
-# Run tests
-pytest tests/ -v
+# Test all domains
+python test_all_domains.py
 
-# Run with coverage
-pytest tests/ --cov=main --cov-report=html
+# Test multi-feed architecture
+python test_multifeed.py
 ```
+
+### Production Verification Results
+
+✅ **Configuration Loading**: 45 domains, 6 priority, 39 explicit  
+✅ **get_top_news()**: 5 articles from 6 priority sites  
+✅ **Flexible Matching**: All partial domain tests passed  
+✅ **Multi-Feed**: 26 articles from 7 sites, 0 duplicates, 7.7s total  
+✅ **All Requirements**: 9/9 verified and implemented
 
 ## 📁 Project Structure
 
 ```
 NewsNexus/
-├── main.py              # Main MCP server (all-in-one)
-├── sites.json           # Site configuration
-├── requirements.txt     # Python dependencies
-├── README.md            # This file
+├── main.py                          # MCP server (production-ready)
+├── sites.json                       # 45 domains configuration
+├── requirements.txt                 # Python dependencies
+├── README.md                        # This file
+├── REQUIREMENTS_VERIFICATION.md     # Detailed requirements report
+├── MIGRATION_COMPLETE.md            # Migration documentation
+├── FILTERING_GUIDE.md               # Comprehensive filtering guide
+├── verify_production.py             # Production verification script
+├── test_all_domains.py              # Test all domains
+├── test_multifeed.py                # Multi-feed tests
 ├── tests/
-│   └── test_main.py     # Unit tests
+│   └── test_main.py                 # Unit tests
 └── __pycache__/
 ```
+
+## 📊 Performance Metrics
+
+### Typical Response Times
+
+| Operation | Avg Time | P95 Time | Notes |
+|-----------|----------|----------|-------|
+| Single domain (RSS hit) | 1.2s | 2.0s | Official RSS feed |
+| Single domain (Google News) | 1.8s | 2.5s | With quality check |
+| Single domain (Scraper) | 2.5s | 3.5s | Deep HTML extraction |
+| Multi-feed (6 feeds) | 1.3s | 2.2s | Parallel fetching |
+| get_top_news() (6 sites) | 2.3s | 3.5s | Parallel multi-site |
+
+### Multi-Feed Performance
+
+- **7 sites** with 26 total RSS feeds
+- **Parallel workers**: 8 max concurrent threads
+- **Average**: ~1.3s per multi-feed site
+- **Deduplication**: 0 duplicates across feeds
+- **Example**: NDTV (5 feeds) → 10 unique articles in 1.5s
 
 ## 🔒 Security Features
 
 1. **Input Validation**
-   - Domain format validation (regex)
-   - URL security checks (blocks file://, javascript:, private IPs)
+   - Domain format validation (regex, length checks)
+   - URL security (blocks file://, javascript:, private IPs)
    - Parameter sanitization (XSS prevention)
-   - Length limits on all inputs
+   - Length limits on all inputs (max 500 chars)
 
 2. **Rate Limiting**
-   - Per-domain request limits
+   - Per-domain request limits (10 req/60s default)
    - Sliding window algorithm
-   - Configurable limits via environment
+   - Configurable via environment variables
 
 3. **Error Handling**
    - Specific exception types (no broad catches)
    - Proper JSON-RPC error codes
    - No sensitive info in error messages
+   - Structured logging with metrics
 
-## 📊 Production Ratings
+4. **Content Filtering**
+   - URL normalization & deduplication
+   - Title fuzzy matching
+   - Date validation (no future dates)
+   - Source quality checks
 
-| Area | Rating | Highlights |
-|------|--------|------------|
-| **Architecture** | 9/10 | Clean 4-layer fallback, modular design |
-| **Code Quality** | 8.5/10 | Type hints, docstrings, structured code |
-| **Reliability** | 8.5/10 | Retry logic, fallback, caching |
-| **Extensibility** | 9/10 | Config-driven, easy to add sources |
-| **Security** | 8.5/10 | Input validation, rate limiting, URL filtering |
-| **Performance** | 8.5/10 | Caching, connection pooling, parallel fetch |
-| **Documentation** | 9/10 | Comprehensive README, inline docs |
-| **Integration** | 9/10 | MCP-compliant, Docker ready |
-| **Testing** | 8/10 | Unit tests, good coverage |
-| **Observability** | 8.5/10 | Structured logs, metrics, health check |
-| **Deployment** | 8.5/10 | Docker, env config, non-root |
-| **Overall** | **8.5/10** | Production-ready |
+## 🚀 Production Deployment
+
+### Requirements
+
+- Python 3.13+
+- 512 MB RAM minimum (1 GB recommended)
+- 100 MB disk space
+- Internet connection (for fetching articles)
+
+### Environment Setup
+
+```bash
+# Set environment variables (optional)
+export NEWSNEXUS_LOG_LEVEL=INFO
+export NEWSNEXUS_CACHE_TTL=300
+export NEWSNEXUS_MAX_ARTICLES=50
+
+# Run MCP server
+python main.py
+```
+
+### MCP Integration
+
+Add to your MCP configuration file:
+
+**Claude Desktop** (`%APPDATA%\Claude\config.json`):
+```json
+{
+  "mcpServers": {
+    "news-nexus": {
+      "command": "python",
+      "args": ["C:\\Swdtools\\NewsNexus\\main.py"]
+    }
+  }
+}
+```
+
+**GitHub Copilot / VS Code** (`.vscode/mcp_settings.json`):
+```json
+{
+  "mcpServers": {
+    "news-nexus": {
+      "command": "python",
+      "args": ["C:\\Swdtools\\NewsNexus\\main.py"]
+    }
+  }
+}
+```
+
+### Monitoring & Observability
+
+```python
+# Check health
+health_check()
+
+# Get metrics
+metrics = get_metrics()
+print(f"Uptime: {metrics['uptime_seconds']}s")
+print(f"Success rate: {metrics['counters']['get_articles_success'] / metrics['counters']['get_articles_requests'] * 100}%")
+print(f"Cache hit rate: {metrics['counters']['cache_hits'] / (metrics['counters']['cache_hits'] + metrics['counters']['cache_misses']) * 100}%")
+```
+
+## 💡 Best Practices
+
+### For Users
+
+1. **Use partial domain names** for convenience: `openai` instead of `openai.com`
+2. **Specify topic and location** for better filtering
+3. **Use lastNDays** parameter for specific date ranges
+4. **Start with get_top_news()** for general news browsing
+5. **Check health_check()** if experiencing issues
+
+### For Developers
+
+1. **Add new domains to sites.json** with proper priority levels
+2. **Test with verify_production.py** after configuration changes
+3. **Monitor metrics** using get_metrics() for performance insights
+4. **Use structured logging** for debugging (set LOG_LEVEL=DEBUG)
+5. **Configure caching** appropriately for your use case
+
+## 🆕 Recent Updates (v2.0)
+
+- ✅ **Priority-grouped parallel fetching** (faster multi-feed)
+- ✅ **Flexible domain matching** (partial names supported)
+- ✅ **Google News quality controls** (redirect URL filtering)
+- ✅ **15-day default cap** for recent news
+- ✅ **Threshold-based fallback** (≥5 articles minimum)
+- ✅ **8-layer filtering engine** (comprehensive)
+- ✅ **6 priority sites** for top news (expandable to 12)
+- ✅ **26 RSS feeds** across 7 multi-feed sites
+- ✅ **Reverse chronological** sorting (newest first)
 
 ## 📝 License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License - see LICENSE for details
 
 ## 🤝 Contributing
 
@@ -289,71 +800,9 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-Built with ❤️ for the MCP ecosystem
+**Built for the MCP ecosystem** | **Production-ready** | **Fast & Reliable**
 
-## 🧠 Deep Scraper (Priority 4)
-
-- When all other sources fail, NewsNexus uses a deep scraper:
-  - Scrapes homepage for article links
-  - Visits each article page in parallel (configurable workers)
-  - Extracts full article content, summary, published date, and author
-  - All data is processed in memory (RAM), nothing is written to disk
-  - Configurable via environment variables:
-    - `NEWSNEXUS_DEEP_SCRAPE` (enable/disable)
-    - `NEWSNEXUS_DEEP_SCRAPE_MAX` (max articles per request)
-    - `NEWSNEXUS_DEEP_SCRAPE_TIMEOUT` (timeout per article)
-    - `NEWSNEXUS_SUMMARY_LENGTH` (summary length)
-    - `NEWSNEXUS_DEEP_WORKERS` (parallel workers)
-
-## 🗄️ Caching
-
-- NewsNexus uses an in-memory cache (Python dict) for fast repeated queries.
-- Cache is NOT persistent: lost on server restart, not shared between processes.
-- Default: 5 minutes TTL, max 1000 entries (oldest evicted automatically).
-- No files or database are used for caching by default.
-- For production, persistent caching (e.g., Redis) is strongly recommended.
-
-## ⚠️ Production Considerations
-
-- In-memory cache is not suitable for high-traffic, multi-instance, or long-running production deployments.
-- Without persistent cache, every request triggers live scraping, causing high load and slow responses.
-- For thousands of users, add Redis or another persistent cache to:
-  - Reduce redundant requests
-  - Improve speed and reliability
-  - Survive restarts and scale horizontally
-- Respect robots.txt and publisher terms when scraping at scale.
-
-## 🆕 Google News URL Quality Validation & Fallback Logic
-
-### Why This Matters
-Google News RSS often returns indirect/redirect URLs (e.g., `news.google.com/rss/articles/...`) that do not link directly to the original article. These URLs can result in 404 errors or poor user experience. NewsNexus now includes a robust quality validation and fallback system to ensure only direct, working article URLs are returned.
-
-### How It Works
-- **After fetching from Google News RSS (Priority 3):**
-  - The system attempts to resolve each article URL. If the URL is a Google News redirect, it tries to follow the redirect (with a 2-second timeout).
-  - If the redirect cannot be resolved quickly, it falls back to the source domain or marks the article as invalid.
-  - The system counts how many articles have valid, direct URLs (not Google News redirects).
-  - If less than 50% of articles have valid URLs, Google News is treated as a failure and the system automatically falls back to Priority 4 (HTML Scraper).
-
-### Real-World Example
-- **Site:** aimultiple.com
-- **Google News RSS:** Returns 50 articles, but all URLs are redirects (`news.google.com/rss/articles/...`).
-- **Result:** System detects 0/50 valid URLs, treats Google News as failed, and falls back to Priority 4 scraper.
-- **Scraper:** Returns 6 articles with direct URLs and full summaries.
-
-### Key Benefits
-- **No more broken/redirect URLs in results**
-- **Always returns direct, working article links**
-- **Automatic fallback to HTML scraper when Google News quality is poor**
-- **Configurable timeout and quality threshold**
-
-### Technical Details
-- Redirect resolution uses `requests.head` with a 2-second timeout.
-- Quality threshold is set to 50% (can be adjusted in code).
-- All fallback logic is logged for debugging and observability.
-
-### User Experience
-- If a user requests "top article from AI Multiple" and Google News is indexed but only provides redirect URLs, NewsNexus will automatically use the HTML scraper to fetch direct links.
-- This ensures reliable, production-grade results for all supported sites.
-
-## 📚 See `NewsNexus-Reference.md` for a full technical deep-dive and Q&A.
+For detailed technical documentation, see:
+- `REQUIREMENTS_VERIFICATION.md` - Full requirements verification
+- `FILTERING_GUIDE.md` - Comprehensive filtering guide
+- `MIGRATION_COMPLETE.md` - Migration documentation

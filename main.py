@@ -329,7 +329,7 @@ BLOCKED_URL_PATTERNS = [
 
 
 def validate_domain(domain: str) -> Tuple[bool, str]:
-    """Validate domain format with detailed error message."""
+    """Validate domain format with detailed error message. Supports partial domain names."""
     if not domain:
         return False, "Domain is required"
     
@@ -339,8 +339,9 @@ def validate_domain(domain: str) -> Tuple[bool, str]:
     if len(domain) > 253:
         return False, "Domain too long (max 253 characters)"
     
-    # Basic domain validation
-    pattern = r'^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$'
+    # Relaxed domain validation - allows partial names like 'openai' or 'wired'
+    # Also accepts full domains like 'openai.com' or 'www.openai.com'
+    pattern = r'^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9-]+)*$'
     if not re.match(pattern, domain):
         return False, "Invalid domain format"
     
@@ -517,6 +518,50 @@ def get_session() -> requests.Session:
             _session.mount('http://', adapter)
             _session.mount('https://', adapter)
         return _session
+
+
+def fetch_and_parse_source(source: Dict, domain: str) -> Tuple[List[Dict], str, str]:
+    """
+    Fetch and parse a single source. Returns (articles, source_type, url).
+    Used for parallel fetching of same-priority sources.
+    """
+    source_type = source.get('type', 'unknown')
+    url = source.get('url', '')
+    timeout = source.get('timeout_ms', DEFAULT_TIMEOUT_MS) / 1000
+    
+    if not url:
+        return ([], source_type, url)
+    
+    response = fetch_with_retry(url, timeout)
+    if not response:
+        return ([], source_type, url)
+    
+    articles = []
+    try:
+        if source_type in ['official_rss', 'rsshub', 'google_news']:
+            articles = parse_rss_feed(response.content, domain)
+            
+            # For Google News: Quick quality check
+            if source_type == 'google_news' and articles:
+                sample_size = min(5, len(articles))
+                valid_count = sum(
+                    1 for article in articles[:sample_size]
+                    if article.get('url', '') and 'news.google.com' not in article.get('url', '')
+                )
+                
+                if valid_count < sample_size * 0.5:
+                    logger.warning("Google News quality check failed for %s", url)
+                    articles = []
+                    
+        elif source_type == 'scraper':
+            articles = parse_html_scraper_deep(response.content, domain, url, enable_deep_scrape=True)
+            
+    except Exception as e:
+        logger.error("Error parsing %s response from %s: %s", source_type, url, str(e))
+        articles = []
+    
+    return (articles, source_type, url)
+
 
 
 def fetch_with_retry(url: str, timeout: float, retries: int = MAX_RETRIES) -> Optional[requests.Response]:
@@ -1374,6 +1419,40 @@ def filter_articles(articles: List[Dict], topic: Optional[str],
     
     return filtered
 
+
+def find_site_by_domain(domain: str, config: List[Dict]) -> Optional[Dict]:
+    """
+    Find site config by domain name with flexible matching.
+    Supports:
+    - Exact match: 'openai.com' → 'openai.com'
+    - Partial match: 'openai' → 'openai.com'
+    - www prefix: 'www.openai.com' → 'openai.com'
+    """
+    domain = domain.lower().strip()
+    
+    # Remove www. prefix if present
+    if domain.startswith('www.'):
+        domain = domain[4:]
+    
+    # Try exact match first
+    for site in config:
+        site_domain = site.get('domain', '').lower()
+        if site_domain == domain:
+            return site
+    
+    # Try partial match (domain contains input or input contains domain)
+    for site in config:
+        site_domain = site.get('domain', '').lower()
+        # Remove www. from site domain too
+        if site_domain.startswith('www.'):
+            site_domain = site_domain[4:]
+        
+        # Check if input matches domain base (e.g., 'openai' matches 'openai.com')
+        if domain in site_domain or site_domain.startswith(domain + '.'):
+            return site
+    
+    return None
+
 # =============================================================================
 # PARALLEL FETCHING
 # =============================================================================
@@ -1506,8 +1585,8 @@ def get_articles(domain: str, topic: Optional[str] = None,
         cached_result['cached'] = True
         return cached_result
     
-    # Find site config
-    site = next((s for s in config if s['domain'] == domain), None)
+    # Find site config with flexible domain matching
+    site = find_site_by_domain(domain, config)
     if not site:
         logger.info("Domain not found in config: %s", domain)
         metrics.increment('get_articles_domain_not_found')
@@ -1537,119 +1616,115 @@ def get_articles(domain: str, topic: Optional[str] = None,
             sources = [google_source]
             logger.info(f"Fast mode: Using Google News RSS only for {domain}")
     
-    # Fetch articles
+    # Fetch articles using priority-grouped parallel fetching
     result = None
     
-    if PARALLEL_FETCH and len(sources) > 1:
-        # Parallel fetching mode
-        all_results = fetch_all_sources_parallel(sources, domain)
+    # Group sources by priority level
+    from collections import defaultdict
+    sources_by_priority = defaultdict(list)
+    for source in sources:
+        priority = source.get('priority', 99)
+        sources_by_priority[priority].append(source)
+    
+    logger.info("Starting priority-grouped fetch for %d sources across %d priority levels", 
+               len(sources), len(sources_by_priority),
+               extra={'domain': domain, 'source_count': len(sources)})
+    
+    # Try each priority level sequentially
+    for priority_level in sorted(sources_by_priority.keys()):
+        priority_sources = sources_by_priority[priority_level]
         
-        # Try results in priority order
-        for source in sources:
-            source_type = source.get('type', 'unknown')
-            articles = all_results.get(source_type, [])
-            
-            if articles:
-                filtered = filter_articles(articles, topic_clean, location_clean, last_n_days)
-                if filtered:
-                    result = {
-                        "sourceUsed": f"{source_type} ({source.get('url', '')})",
-                        "articles": filtered,
-                        "cached": False
-                    }
-                    break
-    else:
-        # Sequential fetching (default)
-        logger.info("Starting sequential fetch for %d sources", len(sources),
-                   extra={'domain': domain, 'source_count': len(sources)})
-        for idx, source in enumerate(sources, 1):
-            source_type = source.get('type', 'unknown')
-            url = source.get('url', '')
-            timeout = source.get('timeout_ms', DEFAULT_TIMEOUT_MS) / 1000
-            
-            logger.info("Trying source %d/%d: %s: %s", idx, len(sources), source_type, url,
-                       extra={'domain': domain, 'source_type': source_type})
-            
-            response = fetch_with_retry(url, timeout)
-            if not response:
-                logger.info("No response from %s, continuing to next source", source_type)
-                continue
-            
-            articles = []
+        logger.info("Trying priority %d with %d sources", priority_level, len(priority_sources))
+        
+        # Fetch all sources at this priority level IN PARALLEL
+        all_articles = []
+        source_info = []
+        
+        if len(priority_sources) > 1:
+            # Parallel fetch for multiple sources at same priority
+            with ThreadPoolExecutor(max_workers=min(8, len(priority_sources))) as executor:
+                future_to_source = {
+                    executor.submit(fetch_and_parse_source, src, domain): src
+                    for src in priority_sources
+                }
+                
+                for future in as_completed(future_to_source, timeout=10):
+                    source = future_to_source[future]
+                    try:
+                        articles, src_type, src_url = future.result()
+                        if articles:
+                            all_articles.extend(articles)
+                            source_info.append((src_type, src_url, len(articles)))
+                            logger.info("Fetched %d articles from %s (%s)", 
+                                       len(articles), src_type, src_url)
+                    except Exception as e:
+                        logger.warning("Error fetching from %s: %s", 
+                                     source.get('type'), str(e))
+        else:
+            # Single source at this priority - fetch directly
+            source = priority_sources[0]
             try:
-                if source_type in ['official_rss', 'rsshub', 'google_news']:
-                    articles = parse_rss_feed(response.content, domain)
-                    
-                    # For Google News: Quick quality check on first 5 articles only
-                    # If most are redirects, treat as failure and move to next priority
-                    if source_type == 'google_news' and articles:
-                        sample_size = min(5, len(articles))
-                        valid_count = 0
-                        
-                        for article in articles[:sample_size]:
-                            url_to_check = article.get('url', '')
-                            # Quick check: is it a redirect URL?
-                            if url_to_check and 'news.google.com' not in url_to_check:
-                                valid_count += 1
-                        
-                        # If less than 50% of sampled articles have valid URLs, treat as failure
-                        if valid_count < sample_size * 0.5:
-                            logger.warning(
-                                "Google News URL quality check failed: %d/%d sampled articles have valid URLs, falling back",
-                                valid_count, sample_size
-                            )
-                            articles = []  # Clear to trigger next priority
-                            continue
-                        
-                        logger.info("Google News URL quality check passed: %d/%d sampled articles have valid URLs",
-                                  valid_count, sample_size)
-                    
-                elif source_type == 'scraper':
-                    # Use deep scraper for priority 4 (scraper type)
-                    articles = parse_html_scraper_deep(response.content, domain, url, enable_deep_scrape=True)
-                else:
-                    logger.warning("Unknown source type: %s", source_type)
-                    continue
+                articles, src_type, src_url = fetch_and_parse_source(source, domain)
+                if articles:
+                    all_articles.extend(articles)
+                    source_info.append((src_type, src_url, len(articles)))
             except Exception as e:
-                logger.error("Error parsing %s response: %s", source_type, str(e),
-                           extra={'error_type': 'parse_error'})
-                continue
-            
-            logger.info("Parsed %d articles from %s", len(articles), source_type,
-                       extra={'article_count': len(articles), 'source_type': source_type})
-            
-            filtered = filter_articles(articles, topic_clean, location_clean, last_n_days)
-            
-            logger.info("Filtered to %d articles", len(filtered),
-                       extra={'article_count': len(filtered)})
-            
-            # Only accept result if we have enough articles (threshold defined at top)
-            if filtered:
-                if len(filtered) >= MIN_ARTICLES_THRESHOLD:
-                    # We have enough articles, use this source
-                    logger.info("Found %d articles from %s (>= threshold %d), using this source", 
-                               len(filtered), source_type, MIN_ARTICLES_THRESHOLD)
+                logger.warning("Error fetching from %s: %s", source.get('type'), str(e))
+        
+        if not all_articles:
+            logger.info("No articles from priority %d, trying next priority", priority_level)
+            continue
+        
+        # Deduplicate articles (by URL)
+        seen_urls = set()
+        unique_articles = []
+        for article in all_articles:
+            url = article.get('url', '')
+            if url and url not in seen_urls:
+                seen_urls.add(url)
+                unique_articles.append(article)
+        
+        logger.info("Merged %d articles from priority %d (deduplicated to %d)", 
+                   len(all_articles), priority_level, len(unique_articles))
+        
+        # Filter by topic, location, date
+        filtered = filter_articles(unique_articles, topic_clean, location_clean, last_n_days)
+        
+        logger.info("Filtered to %d articles", len(filtered),
+                   extra={'article_count': len(filtered)})
+        
+        # Check if we have enough articles
+        if filtered:
+            if len(filtered) >= MIN_ARTICLES_THRESHOLD:
+                # We have enough articles, use this priority level
+                sources_used = ", ".join([f"{st}" for st, su, _ in source_info[:3]])  # Show first 3
+                if len(source_info) > 3:
+                    sources_used += f" +{len(source_info)-3} more"
+                logger.info("Found %d articles from priority %d (>= threshold %d), using these sources", 
+                           len(filtered), priority_level, MIN_ARTICLES_THRESHOLD)
+                result = {
+                    "sourceUsed": f"priority_{priority_level} [{sources_used}]",
+                    "articles": filtered,
+                    "cached": False
+                }
+                break
+            else:
+                # Not enough articles, try next priority but keep this as fallback
+                sources_used = ", ".join([f"{st}" for st, su, _ in source_info[:3]])
+                if len(source_info) > 3:
+                    sources_used += f" +{len(source_info)-3} more"
+                logger.info("Found only %d articles from priority %d (< threshold %d), trying next priority", 
+                           len(filtered), priority_level, MIN_ARTICLES_THRESHOLD)
+                if result is None or len(filtered) > len(result.get('articles', [])):
+                    # Keep this result as fallback if it's better than what we have
                     result = {
-                        "sourceUsed": f"{source_type} ({url})",
+                        "sourceUsed": f"priority_{priority_level} [{sources_used}]",
                         "articles": filtered,
                         "cached": False
                     }
-                    break
-                else:
-                    # Not enough articles, try next source but keep this as fallback
-                    logger.info("Found only %d articles from %s (< threshold %d), trying next source", 
-                               len(filtered), source_type, MIN_ARTICLES_THRESHOLD)
-                    if result is None or len(filtered) > len(result.get('articles', [])):
-                        # Keep this result as fallback if it's better than what we have
-                        result = {
-                            "sourceUsed": f"{source_type} ({url})",
-                            "articles": filtered,
-                            "cached": False
-                        }
-                        logger.info("Kept %s as fallback with %d articles", source_type, len(filtered))
-                    # Continue to next source
-            else:
-                logger.info("No articles passed filters from %s, trying next source", source_type)
+                    logger.info("Kept priority %d as fallback with %d articles", priority_level, len(filtered))
+        else:
+            logger.info("No articles passed filters from priority %d, trying next priority", priority_level)
     
     # Build final result with user-friendly messaging
     if result is None:
@@ -1667,7 +1742,7 @@ def get_articles(domain: str, topic: Optional[str] = None,
         # Sort articles by date (reverse chronological - newest first)
         articles = result.get('articles', [])
         if articles:
-            articles.sort(key=lambda x: x.get('published_at', ''), reverse=True)
+            articles.sort(key=lambda x: x.get('published_at') or '', reverse=True)
             # Limit to requested count
             result['articles'] = articles[:count]
         
