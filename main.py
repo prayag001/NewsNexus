@@ -71,7 +71,7 @@ DEEP_SCRAPE_PARALLEL_WORKERS = int(os.environ.get('NEWSNEXUS_DEEP_WORKERS', '5')
 
 # Recent news settings
 MAX_RECENT_DAYS = 15  # Hard cap: Articles older than 15 days are not considered "recent"
-DEFAULT_ARTICLE_COUNT = 10  # Default number of articles when user doesn't specify
+DEFAULT_ARTICLE_COUNT = 8  # Default number of articles when user doesn't specify
 MIN_ARTICLES_THRESHOLD = 5  # Minimum articles before trying next priority source
 
 # =============================================================================
@@ -1383,13 +1383,16 @@ def filter_articles(articles: List[Dict], topic: Optional[str],
             ' '.join(art.get('tags', []))
         ]).lower()
         
-        # Topic filter
-        if topic_lower and topic_lower not in text:
-            continue
+        # Topic filter with word boundary matching to avoid false positives
+        if topic_lower:
+            # Use word boundary matching: \bai\b matches "ai" but not "paint" or "ukraine"
+            if not re.search(r'\b' + re.escape(topic_lower) + r'\b', text):
+                continue
         
-        # Location filter
-        if location_lower and location_lower not in text:
-            continue
+        # Location filter with word boundary matching
+        if location_lower:
+            if not re.search(r'\b' + re.escape(location_lower) + r'\b', text):
+                continue
         
         # Date filter
         if last_n_days and art.get('published_at'):
@@ -1641,25 +1644,28 @@ def get_articles(domain: str, topic: Optional[str] = None,
         source_info = []
         
         if len(priority_sources) > 1:
-            # Parallel fetch for multiple sources at same priority
+            # Parallel fetch for multiple sources at same priority - 5-second timeout
             with ThreadPoolExecutor(max_workers=min(8, len(priority_sources))) as executor:
                 future_to_source = {
                     executor.submit(fetch_and_parse_source, src, domain): src
                     for src in priority_sources
                 }
                 
-                for future in as_completed(future_to_source, timeout=10):
-                    source = future_to_source[future]
-                    try:
-                        articles, src_type, src_url = future.result()
-                        if articles:
-                            all_articles.extend(articles)
-                            source_info.append((src_type, src_url, len(articles)))
-                            logger.info("Fetched %d articles from %s (%s)", 
-                                       len(articles), src_type, src_url)
-                    except Exception as e:
-                        logger.warning("Error fetching from %s: %s", 
-                                     source.get('type'), str(e))
+                try:
+                    for future in as_completed(future_to_source, timeout=5):  # Reduced from 10s to 5s
+                        source = future_to_source[future]
+                        try:
+                            articles, src_type, src_url = future.result(timeout=2)  # 2s max per source
+                            if articles:
+                                all_articles.extend(articles)
+                                source_info.append((src_type, src_url, len(articles)))
+                                logger.info("Fetched %d articles from %s (%s)", 
+                                           len(articles), src_type, src_url)
+                        except Exception as e:
+                            logger.warning("Error fetching from %s: %s", 
+                                         source.get('type'), str(e))
+                except FuturesTimeoutError:
+                    logger.warning("Priority %d timeout (5s) reached, using partial results", priority_level)
         else:
             # Single source at this priority - fetch directly
             source = priority_sources[0]
@@ -1825,8 +1831,8 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
     
     logger.info(f"Fetching top news from {len(sites_to_fetch)} priority sites")
     
-    # Parallel domain fetching for top news
-    max_workers = min(8, len(sites_to_fetch))  # Limit concurrent domain fetches
+    # Parallel domain fetching for top news - use fewer workers for faster response
+    max_workers = min(4, len(sites_to_fetch))  # Reduced from 8 to 4 for faster response
     
     def fetch_domain(site_config):
         domain = site_config.get('domain')
@@ -1868,26 +1874,32 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
                 'error': str(e)
             }
     
-    # Use ThreadPoolExecutor for parallel domain fetching
+    # Use ThreadPoolExecutor for parallel domain fetching with overall 15-second timeout
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(fetch_domain, site_config): site_config 
                    for site_config in sites_to_fetch}
         
-        # Process futures as they complete (let each worker finish within its configured timeout)
-        for future in as_completed(futures):
-            try:
-                result = future.result()  # No additional timeout - workers have their own timeouts
-                if result:
-                    if 'articles' in result and result['articles']:
-                        all_articles.extend(result['articles'])
-                        sources_used.append(result['source_info'])
-                    elif 'error' in result:
-                        errors.append({'domain': result['domain'], 'error': result['error']})
-            except Exception as e:
-                site = futures[future]
-                domain = site.get('domain', 'unknown')
-                logger.error("Error fetching from domain %s: %s", domain, str(e))
-                errors.append({'domain': domain, 'error': str(e)})
+        # Process futures as they complete with 15-second overall timeout for all domains
+        try:
+            for future in as_completed(futures, timeout=15):
+                try:
+                    result = future.result(timeout=5)  # 5-second max per domain
+                    if result:
+                        if 'articles' in result and result['articles']:
+                            all_articles.extend(result['articles'])
+                            sources_used.append(result['source_info'])
+                        elif 'error' in result:
+                            errors.append({'domain': result['domain'], 'error': result['error']})
+                except Exception as e:
+                    site = futures[future]
+                    domain = site.get('domain', 'unknown')
+                    logger.error("Error fetching from domain %s: %s", domain, str(e))
+                    errors.append({'domain': domain, 'error': str(e)})
+        except FuturesTimeoutError:
+            logger.warning("get_top_news overall timeout (15s) reached, returning partial results")
+            # Cancel remaining futures
+            for future in futures:
+                future.cancel()
     
     # Sort all articles by published date (newest first)
     def get_sort_key(article):
@@ -2046,7 +2058,7 @@ def handle_request(request: Dict) -> Optional[Dict]:
                     },
                     {
                         "name": "get_top_news",
-                        "description": "Aggregate top RECENT news from ALL configured domains. Returns newest first. Default: 10 articles from last 15 days across all priority sites.",
+                        "description": "Aggregate top RECENT news from ALL configured domains. Returns newest first. Default: 8 articles from last 15 days across all priority sites.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
