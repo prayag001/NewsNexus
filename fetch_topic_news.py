@@ -76,6 +76,18 @@ TOPIC_KEYWORDS = {
         'covid', 'pandemic', 'wellness', 'fitness', 'nutrition', 'medicine',
         'health news', 'healthcare', 'virus', 'treatment', 'patient',
         'symptom', 'disease outbreak'
+    ],
+    'entertainment': [
+        'entertainment', 'movie', 'film', 'cinema', 'bollywood', 'hollywood',
+        'actor', 'actress', 'celebrity', 'music', 'concert', 'album',
+        'netflix', 'amazon prime', 'ott', 'web series', 'tv show',
+        'box office', 'premiere', 'trailer', 'award', 'oscar', 'grammy'
+    ],
+    'education': [
+        'education', 'school', 'college', 'university', 'student', 'teacher',
+        'exam', 'admission', 'scholarship', 'degree', 'course', 'learning',
+        'neet', 'jee', 'upsc', 'cbse', 'icse', 'academic', 'graduation',
+        'entrance exam', 'study', 'curriculum'
     ]
 }
 
