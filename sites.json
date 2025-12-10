@@ -36,7 +36,7 @@
       },
       {
         "type": "google_news",
-        "url": "https://news.google.com/rss/search?q=site:ndtv.com&hl=en",
+        "url": "https://news.google.com/rss/search?q=site:ndtv.com&hl=en-US&gl=US&ceid=US:en",
         "priority": 2,
         "timeout_ms": 2000
       },
@@ -53,6 +53,12 @@
     "domain": "indianexpress.com",
     "priority": 2,
     "sources": [
+      {
+        "type": "official_rss",
+        "url": "https://indianexpress.com/section/cities/pune/feed/",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
       {
         "type": "official_rss",
         "url": "https://indianexpress.com/section/sports/cricket/feed/",
@@ -85,7 +91,7 @@
       },
       {
         "type": "google_news",
-        "url": "https://news.google.com/rss/search?q=site:indianexpress.com&hl=en",
+        "url": "https://news.google.com/rss/search?q=site:indianexpress.com&hl=en-US&gl=US&ceid=US:en",
         "priority": 2,
         "timeout_ms": 2000
       },
@@ -134,7 +140,7 @@
       },
       {
         "type": "google_news",
-        "url": "https://news.google.com/rss/search?q=site:timesofindia.indiatimes.com&hl=en",
+        "url": "https://news.google.com/rss/search?q=site:timesofindia.indiatimes.com&hl=en-US&gl=US&ceid=US:en",
         "priority": 2,
         "timeout_ms": 2000
       },
@@ -165,7 +171,7 @@
       },
       {
         "type": "google_news",
-        "url": "https://news.google.com/rss/search?q=site:hindustantimes.com&hl=en",
+        "url": "https://news.google.com/rss/search?q=site:hindustantimes.com&hl=en-US&gl=US&ceid=US:en",
         "priority": 2,
         "timeout_ms": 2000
       },
@@ -196,7 +202,7 @@
       },
       {
         "type": "google_news",
-        "url": "https://news.google.com/rss/search?q=site:gadgets360.com&hl=en",
+        "url": "https://news.google.com/rss/search?q=site:gadgets360.com&hl=en-US&gl=US&ceid=US:en",
         "priority": 2,
         "timeout_ms": 2000
       },
@@ -245,7 +251,7 @@
       },
       {
         "type": "google_news",
-        "url": "https://news.google.com/rss/search?q=site:economictimes.indiatimes.com&hl=en",
+        "url": "https://news.google.com/rss/search?q=site:economictimes.indiatimes.com&hl=en-US&gl=US&ceid=US:en",
         "priority": 2,
         "timeout_ms": 2000
       },
@@ -261,349 +267,926 @@
     "name": "Analytics India Magazine",
     "domain": "analyticsindiamag.com",
     "sources": [
-      {"type": "official_rss", "url": "https://analyticsindiamag.com/feed/", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:analyticsindiamag.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://analyticsindiamag.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://analyticsindiamag.com/feed/",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:analyticsindiamag.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://analyticsindiamag.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "India Technology News",
     "domain": "indiatechnologynews.in",
     "sources": [
-      {"type": "official_rss", "url": "https://indiatechnologynews.in/feed/", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:indiatechnologynews.in&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://indiatechnologynews.in/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://indiatechnologynews.in/feed/",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:indiatechnologynews.in&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://indiatechnologynews.in/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "Wired",
     "domain": "wired.com",
     "sources": [
-      {"type": "official_rss", "url": "https://www.wired.com/feed/rss", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:wired.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.wired.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://www.wired.com/feed/rss",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:wired.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.wired.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "The Verge",
     "domain": "theverge.com",
     "sources": [
-      {"type": "official_rss", "url": "https://www.theverge.com/rss/index.xml", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:theverge.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.theverge.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://www.theverge.com/rss/index.xml",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:theverge.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.theverge.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "TechRadar",
     "domain": "techradar.com",
     "sources": [
-      {"type": "official_rss", "url": "https://www.techradar.com/feeds.xml", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:techradar.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.techradar.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://www.techradar.com/feeds.xml",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:techradar.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.techradar.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "TechRepublic",
     "domain": "techrepublic.com",
     "sources": [
-      {"type": "official_rss", "url": "https://www.techrepublic.com/rssfeeds/articles/", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:techrepublic.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.techrepublic.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://www.techrepublic.com/rssfeeds/articles/",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:techrepublic.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.techrepublic.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "DevShorts",
     "domain": "devshorts.in",
     "sources": [
-      {"type": "official_rss", "url": "https://www.devshorts.in/feed", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:devshorts.in&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.devshorts.in/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://www.devshorts.in/feed",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:devshorts.in&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.devshorts.in/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "Google Research Blog",
     "domain": "research.google",
     "sources": [
-      {"type": "official_rss", "url": "https://research.google/blog/rss/", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:research.google&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://research.google/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://research.google/blog/rss/",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:research.google&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://research.google/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "Analytics Vidhya",
     "domain": "analyticsvidhya.com",
     "sources": [
-      {"type": "official_rss", "url": "https://www.analyticsvidhya.com/feed/", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:analyticsvidhya.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.analyticsvidhya.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://www.analyticsvidhya.com/feed/",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:analyticsvidhya.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.analyticsvidhya.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "KDnuggets",
     "domain": "kdnuggets.com",
     "sources": [
-      {"type": "official_rss", "url": "https://www.kdnuggets.com/feed", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:kdnuggets.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.kdnuggets.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://www.kdnuggets.com/feed",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:kdnuggets.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.kdnuggets.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "Creator Economy",
     "domain": "creatoreconomy.so",
     "sources": [
-      {"type": "official_rss", "url": "https://creatoreconomy.so/feed", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:creatoreconomy.so&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://creatoreconomy.so/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://creatoreconomy.so/feed",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:creatoreconomy.so&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://creatoreconomy.so/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "InfoWorld",
     "domain": "infoworld.com",
     "sources": [
-      {"type": "official_rss", "url": "https://www.infoworld.com/feed/", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:infoworld.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.infoworld.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://www.infoworld.com/feed/",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:infoworld.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.infoworld.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "AI News",
     "domain": "artificialintelligence-news.com",
     "sources": [
-      {"type": "official_rss", "url": "https://www.artificialintelligence-news.com/feed/", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:artificialintelligence-news.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.artificialintelligence-news.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:artificialintelligence-news.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 1,
+        "timeout_ms": 3000
+      },
+      {
+        "type": "official_rss",
+        "url": "https://www.artificialintelligence-news.com/feed/",
+        "priority": 2,
+        "timeout_ms": 2000,
+        "note": "Cloudflare protected - usually blocked"
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.artificialintelligence-news.com/",
+        "priority": 3,
+        "timeout_ms": 2000,
+        "note": "Cloudflare protected - usually blocked"
+      }
     ]
   },
   {
     "name": "TechBuzz AI",
     "domain": "techbuzz.ai",
     "sources": [
-      {"type": "official_rss", "url": "https://www.techbuzz.ai/api/rss/articles", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:techbuzz.ai&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.techbuzz.ai/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://www.techbuzz.ai/api/rss/articles",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:techbuzz.ai&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.techbuzz.ai/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "VentureBeat",
     "domain": "venturebeat.com",
     "sources": [
-      {"type": "official_rss", "url": "https://venturebeat.com/feed", "priority": 1, "timeout_ms": 2000},
-      {"type": "official_rss", "url": "https://venturebeat.com/category/ai/feed", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:venturebeat.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://venturebeat.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://venturebeat.com/feed",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "official_rss",
+        "url": "https://venturebeat.com/category/ai/feed",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:venturebeat.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://venturebeat.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "XDA Developers",
     "domain": "xda-developers.com",
     "sources": [
-      {"type": "official_rss", "url": "https://www.xda-developers.com/feed/", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:xda-developers.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.xda-developers.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://www.xda-developers.com/feed/",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:xda-developers.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.xda-developers.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "CNET",
     "domain": "cnet.com",
     "sources": [
-      {"type": "official_rss", "url": "https://www.cnet.com/rss/news/", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:cnet.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.cnet.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://www.cnet.com/rss/news/",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:cnet.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.cnet.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "Gizmodo",
     "domain": "gizmodo.com",
     "sources": [
-      {"type": "official_rss", "url": "https://gizmodo.com/feed", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:gizmodo.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://gizmodo.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://gizmodo.com/feed/",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:gizmodo.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://gizmodo.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "Engadget",
     "domain": "engadget.com",
     "sources": [
-      {"type": "official_rss", "url": "https://www.engadget.com/rss.xml", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:engadget.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.engadget.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://www.engadget.com/rss.xml",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:engadget.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.engadget.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "ZDNet",
     "domain": "zdnet.com",
     "sources": [
-      {"type": "official_rss", "url": "https://www.zdnet.com/news/rss.xml", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:zdnet.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.zdnet.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://www.zdnet.com/news/rss.xml",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:zdnet.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.zdnet.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "Google AI Blog",
     "domain": "blog.google",
     "sources": [
-      {"type": "official_rss", "url": "https://blog.google/technology/ai/rss/", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:blog.google&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://blog.google/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://blog.google/technology/ai/rss/",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:blog.google&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://blog.google/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "GitHub Blog",
     "domain": "github.blog",
     "sources": [
-      {"type": "official_rss", "url": "https://github.blog/feed/", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:github.blog&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://github.blog/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://github.blog/feed/",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:github.blog&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://github.blog/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "HackerNoon",
     "domain": "hackernoon.com",
     "sources": [
-      {"type": "official_rss", "url": "https://hackernoon.com/feed", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:hackernoon.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://hackernoon.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://hackernoon.com/feed",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:hackernoon.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://hackernoon.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "OpenAI News",
     "domain": "openai.com",
     "sources": [
-      {"type": "official_rss", "url": "https://openai.com/news/rss.xml", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:openai.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://openai.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://openai.com/news/rss.xml",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:openai.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://openai.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "Google DeepMind",
     "domain": "deepmind.google",
     "sources": [
-      {"type": "official_rss", "url": "https://deepmind.google/blog/feed/", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:deepmind.google&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://deepmind.google/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://deepmind.google/blog/feed/",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:deepmind.google&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://deepmind.google/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "Hugging Face Blog",
     "domain": "huggingface.co",
     "sources": [
-      {"type": "official_rss", "url": "https://huggingface.co/blog/feed.xml", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:huggingface.co&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://huggingface.co/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://huggingface.co/blog/feed.xml",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:huggingface.co&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://huggingface.co/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "Android Police",
     "domain": "androidpolice.com",
     "sources": [
-      {"type": "official_rss", "url": "https://www.androidpolice.com/feed/", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:androidpolice.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.androidpolice.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://www.androidpolice.com/feed/",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:androidpolice.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.androidpolice.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "AI Tech",
     "domain": "aitechin.substack.com",
     "sources": [
-      {"type": "official_rss", "url": "https://aitechin.substack.com/feed", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:aitechin.substack.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://aitechin.substack.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://aitechin.substack.com/feed",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:aitechin.substack.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://aitechin.substack.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "Business Standard Markets",
     "domain": "business-standard.com",
     "sources": [
-      {"type": "official_rss", "url": "https://www.business-standard.com/rss/markets-106.rss", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:business-standard.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.business-standard.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://www.business-standard.com/rss/markets-106.rss",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:business-standard.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.business-standard.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "How-To Geek",
     "domain": "howtogeek.com",
     "sources": [
-      {"type": "official_rss", "url": "https://www.howtogeek.com/feed/", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:howtogeek.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.howtogeek.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://www.howtogeek.com/feed/",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:howtogeek.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.howtogeek.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "WonderHowTo",
     "domain": "wonderhowto.com",
     "sources": [
-      {"type": "official_rss", "url": "https://www.wonderhowto.com/rss.xml", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:wonderhowto.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.wonderhowto.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://www.wonderhowto.com/rss.xml",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:wonderhowto.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.wonderhowto.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "BBC News World",
     "domain": "bbc.co.uk",
     "sources": [
-      {"type": "official_rss", "url": "https://feeds.bbci.co.uk/news/world/rss.xml", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:bbc.co.uk&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.bbc.co.uk/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://feeds.bbci.co.uk/news/world/rss.xml",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:bbc.co.uk&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.bbc.co.uk/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "Google News India",
     "domain": "news.google.com",
     "sources": [
-      {"type": "official_rss", "url": "https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en", "priority": 1, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en",
+        "priority": 1,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "The Guardian World",
     "domain": "theguardian.com",
     "sources": [
-      {"type": "official_rss", "url": "https://www.theguardian.com/world/rss", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:theguardian.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.theguardian.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://www.theguardian.com/world/rss",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:theguardian.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.theguardian.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "Sportskeeda",
     "domain": "sportskeeda.com",
     "sources": [
-      {"type": "official_rss", "url": "https://api.sportskeeda.com/v3/feeds_v2/1414?limit=1000&response_type=w3c", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:sportskeeda.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://www.sportskeeda.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://api.sportskeeda.com/v3/feeds_v2/1414?limit=1000&response_type=w3c",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:sportskeeda.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.sportskeeda.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "Lifehacker",
     "domain": "lifehacker.com",
     "sources": [
-      {"type": "official_rss", "url": "https://lifehacker.com/feed/rss", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:lifehacker.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://lifehacker.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://lifehacker.com/feed/rss",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:lifehacker.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://lifehacker.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "Hacker News",
     "domain": "news.ycombinator.com",
     "sources": [
-      {"type": "official_rss", "url": "https://news.ycombinator.com/rss", "priority": 1, "timeout_ms": 2000},
-      {"type": "official_rss", "url": "https://hnrss.org/frontpage", "priority": 1, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://news.ycombinator.com/rss",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "official_rss",
+        "url": "https://hnrss.org/frontpage",
+        "priority": 1,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "Mashable",
     "domain": "mashable.com",
     "sources": [
-      {"type": "official_rss", "url": "http://feeds.mashable.com/Mashable", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:mashable.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://mashable.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "http://feeds.mashable.com/Mashable",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:mashable.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://mashable.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   },
   {
     "name": "TechCrunch",
     "domain": "techcrunch.com",
     "sources": [
-      {"type": "official_rss", "url": "https://feeds.feedburner.com/TechCrunch", "priority": 1, "timeout_ms": 2000},
-      {"type": "google_news", "url": "https://news.google.com/rss/search?q=site:techcrunch.com&hl=en", "priority": 2, "timeout_ms": 2000},
-      {"type": "scraper", "url": "https://techcrunch.com/", "priority": 3, "timeout_ms": 2000}
+      {
+        "type": "official_rss",
+        "url": "https://techcrunch.com/feed/",
+        "priority": 1,
+        "timeout_ms": 3000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:techcrunch.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://techcrunch.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
     ]
   }
 ]

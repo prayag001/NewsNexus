@@ -25,6 +25,7 @@ from urllib.parse import urlparse, urlunparse
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeoutError
 from collections import defaultdict
 from functools import lru_cache
+from collections import OrderedDict
 import threading
 
 # Fix Windows console encoding for Unicode output
@@ -54,25 +55,25 @@ CONFIG_PATH = os.environ.get(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sites.json')
 )
 
-# Retry settings
-MAX_RETRIES = 1  # Reduced from 2 to make failed sites skip faster
-RETRY_BACKOFF = 0.5
+# Retry settings - OPTIMIZED: No retries for faster failure/fallback
+MAX_RETRIES = 0  # No retries - fail fast and move to next source
+RETRY_BACKOFF = 0.3
 
-# Request settings
-DEFAULT_TIMEOUT_MS = 2000
+# Request settings - BALANCED: Allow 2.5s for slower feeds but still fast overall
+DEFAULT_TIMEOUT_MS = 2500  # Increased from 1500ms - some feeds are slow but working
 USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
 # Deep scraper settings
 DEEP_SCRAPE_ENABLED = os.environ.get('NEWSNEXUS_DEEP_SCRAPE', 'true').lower() == 'true'
 DEEP_SCRAPE_MAX_ARTICLES = int(os.environ.get('NEWSNEXUS_DEEP_SCRAPE_MAX', '10'))
-DEEP_SCRAPE_TIMEOUT_MS = int(os.environ.get('NEWSNEXUS_DEEP_SCRAPE_TIMEOUT', '3000'))
+DEEP_SCRAPE_TIMEOUT_MS = int(os.environ.get('NEWSNEXUS_DEEP_SCRAPE_TIMEOUT', '2000'))  # Reduced from 3000
 DEEP_SCRAPE_SUMMARY_LENGTH = int(os.environ.get('NEWSNEXUS_SUMMARY_LENGTH', '500'))
 DEEP_SCRAPE_PARALLEL_WORKERS = int(os.environ.get('NEWSNEXUS_DEEP_WORKERS', '5'))
 
 # Recent news settings
-MAX_RECENT_DAYS = 15  # Hard cap: Articles older than 15 days are not considered "recent"
+MAX_RECENT_DAYS = 10  # Hard cap: Articles older than 10 days are not considered "recent"
 DEFAULT_ARTICLE_COUNT = 8  # Default number of articles when user doesn't specify
-MIN_ARTICLES_THRESHOLD = 5  # Minimum articles before trying next priority source
+MIN_ARTICLES_THRESHOLD = 3  # Reduced from 5 - faster to accept results and skip fallback
 
 # =============================================================================
 # LOGGING SETUP
@@ -209,11 +210,11 @@ rate_limiter = RateLimiter()
 # =============================================================================
 
 class SimpleCache:
-    """Thread-safe in-memory cache with TTL."""
+    """Thread-safe in-memory cache with TTL and LRU eviction."""
     
     def __init__(self, ttl_seconds: int = CACHE_TTL_SECONDS):
         self._lock = threading.Lock()
-        self._cache: Dict[str, Tuple[Any, float]] = {}
+        self._cache = OrderedDict()
         self._ttl = ttl_seconds
     
     def _make_key(self, domain: str, topic: Optional[str], location: Optional[str], days: Optional[int]) -> str:
@@ -228,6 +229,8 @@ class SimpleCache:
             if key in self._cache:
                 value, timestamp = self._cache[key]
                 if time.time() - timestamp < self._ttl:
+                    # Move to end (most recently used)
+                    self._cache.move_to_end(key)
                     metrics.increment('cache_hits')
                     return value
                 else:
@@ -240,16 +243,14 @@ class SimpleCache:
         key = self._make_key(domain, topic, location, days)
         
         with self._lock:
+            # If exists, update and move to end
+            if key in self._cache:
+                self._cache.move_to_end(key)
             self._cache[key] = (result, time.time())
-            # Evict old entries if cache is too large
+            
+            # Evict oldest if cache is too large (O(1))
             if len(self._cache) > 1000:
-                self._evict_oldest()
-    
-    def _evict_oldest(self) -> None:
-        """Remove oldest 10% of entries."""
-        sorted_items = sorted(self._cache.items(), key=lambda x: x[1][1])
-        for key, _ in sorted_items[:len(sorted_items) // 10]:
-            del self._cache[key]
+                self._cache.popitem(last=False)
     
     def clear(self) -> None:
         with self._lock:
@@ -306,6 +307,18 @@ def load_config() -> List[Dict]:
 
 
 config = load_config()
+
+# Build O(1) domain lookup map
+DOMAIN_MAP = {}
+for site in config:
+    d = site.get('domain', '').lower()
+    if d:
+        DOMAIN_MAP[d] = site
+        # Handle www variations
+        if d.startswith('www.'):
+            DOMAIN_MAP[d[4:]] = site
+        else:
+            DOMAIN_MAP['www.' + d] = site
 
 # =============================================================================
 # INPUT VALIDATION
@@ -425,6 +438,35 @@ def sanitize_for_filter(s: Any, max_length: int = 100) -> str:
     
     return s[:max_length].strip().lower()
 
+
+
+def find_site_by_domain(domain: str, config: List[Dict]) -> Optional[Dict]:
+    """
+    Find site config by domain name with O(1) lookup preferred.
+    """
+    domain = domain.lower().strip()
+    
+    # fast lookup
+    if domain in DOMAIN_MAP:
+        return DOMAIN_MAP[domain]
+        
+    # Remove www. prefix if present for lookup
+    search_domain = domain[4:] if domain.startswith('www.') else domain
+    if search_domain in DOMAIN_MAP:
+        return DOMAIN_MAP[search_domain]
+    
+    # Try partial match (domain contains input or input contains domain)
+    # This is slower but necessary for partial inputs
+    for site in config:
+        site_domain = site.get('domain', '').lower()
+        if site_domain.startswith('www.'):
+            site_domain = site_domain[4:]
+        
+        if search_domain in site_domain or site_domain.startswith(search_domain + '.'):
+            return site
+    
+    return None
+
 # =============================================================================
 # DATE PARSING
 # =============================================================================
@@ -541,17 +583,8 @@ def fetch_and_parse_source(source: Dict, domain: str) -> Tuple[List[Dict], str, 
         if source_type in ['official_rss', 'rsshub', 'google_news']:
             articles = parse_rss_feed(response.content, domain)
             
-            # For Google News: Quick quality check
-            if source_type == 'google_news' and articles:
-                sample_size = min(5, len(articles))
-                valid_count = sum(
-                    1 for article in articles[:sample_size]
-                    if article.get('url', '') and 'news.google.com' not in article.get('url', '')
-                )
-                
-                if valid_count < sample_size * 0.5:
-                    logger.warning("Google News quality check failed for %s", url)
-                    articles = []
+            # Note: Google News redirect URLs are kept as-is and work when clicked
+            # The old quality check was removed because it incorrectly rejected valid redirect URLs
                     
         elif source_type == 'scraper':
             articles = parse_html_scraper_deep(response.content, domain, url, enable_deep_scrape=True)
@@ -656,15 +689,10 @@ def parse_rss_feed(content: bytes, domain: str) -> List[Dict]:
             if not title or not link:
                 continue
             
-            # For Google News URLs, mark as redirect - don't try to resolve individually
-            # We'll do a quick quality check after parsing all entries
-            if 'news.google.com' in link:
-                # Try to get source domain instead of redirect
-                if hasattr(entry, 'source'):
-                    source = entry.source
-                    if isinstance(source, dict) and 'href' in source:
-                        link = source['href'].rstrip('/')
-                # If still a Google redirect, keep it but mark for quality check later
+            # For Google News URLs, keep the redirect link as-is
+            # The redirect URLs are unique per article and will work when clicked
+            # Note: entry.source.href only contains the domain, not the full article URL
+            # so we cannot use it for deduplication - keep the Google redirect URL instead
             
             # Validate URL
             valid, _ = validate_url(link)
@@ -771,10 +799,15 @@ def parse_html_scraper(content: bytes, domain: str, base_url: str) -> List[Dict]
     seen_urls = set()
     
     try:
-        soup = BeautifulSoup(content, 'html.parser')
-    except Exception as e:
-        logger.error("Failed to parse HTML: %s", str(e))
-        return []
+        # Use lxml for speed if available, otherwise fallback
+        soup = BeautifulSoup(content, 'lxml')
+    except Exception:
+        # Fallback to html.parser if lxml fails or isn't installed (though it should be)
+        try:
+            soup = BeautifulSoup(content, 'html.parser')
+        except Exception as e:
+            logger.error("Failed to parse HTML: %s", str(e))
+            return []
     
     # Remove unwanted elements
     for elem in soup.find_all(['script', 'style', 'nav', 'footer', 'aside', 'noscript']):
@@ -1002,7 +1035,7 @@ def fetch_article_content(url: str, timeout: float = None) -> Optional[Dict]:
         if not response:
             return None
         
-        soup = BeautifulSoup(response.content, 'html.parser')
+        soup = BeautifulSoup(response.content, 'lxml')
         
         # Remove unwanted elements first
         for selector in CONTENT_EXCLUDE_SELECTORS:
@@ -1351,6 +1384,148 @@ def parse_html_scraper_deep(content: bytes, domain: str, base_url: str,
 # ARTICLE FILTERING
 # =============================================================================
 
+# Topic keyword expansion - maps common topics to related keywords
+# (Synced from fetch_topic_news.py)
+TOPIC_KEYWORDS = {
+    'ai': [
+        'ai', 'artificial intelligence', 'machine learning', 'deep learning',
+        'neural network', 'gpt', 'llm', 'large language model', 'chatgpt', 
+        'claude', 'gemini', 'openai', 'anthropic', 'google ai', 'ai model',
+        'agent', 'agentic', 'generative ai', 'transformer', 'nlp',
+        'natural language', 'computer vision', 'chatbot', 'copilot',
+        'ai assistant', 'prompt engineering', 'fine-tuning', 'embedding',
+        'video generation', 'audio generation', 'speech recognition',
+        'google deepmind', 'nvidia', 'microsoft ai', 'amazon ai', 'apple intelligence',
+        'meta ai', 'baidu', 'deepseek', 'mistral', 'adobe firefly', 'hugging face',
+        'sora', 'runway', 'midjourney', 'stable diffusion', 'diffusion model',
+        'text to image', 'text to video', 'ai safety', 'agi',
+        'cursor', 'windsurf', 'github copilot', 'codeium', 'tabnine'
+    ],
+    'tech': [
+        'technology', 'tech', 'software', 'hardware', 'startup', 'gadget',
+        'smartphone', 'laptop', 'cloud', 'cyber', 'programming', 'developer',
+        'app', 'web', 'digital', 'innovation', 'tech industry', 'tech news',
+        'blockchain', 'metaverse', 'virtual reality', 'augmented reality', 'vr', 'ar',
+        'mobile', 'tablet', 'wearable', 'smartwatch', 'smart home', 'iot',
+        'internet of things', '5g', '6g', 'wifi', 'browser', 'operating system',
+        'android', 'ios', 'windows', 'macos', 'linux', 'chrome', 'safari',
+        'data center', 'server', 'database', 'api', 'saas', 'paas', 'devops',
+        'cybersecurity', 'hacking', 'malware', 'ransomware', 'phishing', 'data breach',
+        'silicon valley', 'techcrunch', 'product launch', 'tech giant'
+    ],
+    'cricket': [
+        'cricket', 'ipl', 'test match', 'odi', 't20', 'bcci', 'wicket',
+        'batsman', 'batter', 'bowler', 'innings', 'stumps', 'run', 'six', 'four',
+        'cricket world cup', 'virat kohli', 'rohit sharma', 'ms dhoni', 'century',
+        'half century', 'hat trick', 'lbw', 'catch', 'boundary', 'pitch',
+        'world cup', 'asia cup', 'border gavaskar trophy', 'ashes', 'icc',
+        'champions trophy', 'ranji trophy', 'sachin tendulkar'
+    ],
+    'finance': [
+        'finance', 'stock', 'market', 'investment', 'banking', 'rupee',
+        'dollar', 'share', 'sensex', 'nifty', 'portfolio', 'mutual fund',
+        'dividend', 'ipo', 'trading', 'financial', 'economy', 'economics',
+        'fiscal', 'budget', 'commodity', 'gold', 'silver', 'bond', 'forex',
+        'rbi', 'reserve bank', 'interest rate', 'inflation', 'gdp', 'recession',
+        'bull market', 'bear market', 'nasdaq', 'dow jones', 'bse', 'nse',
+        'hedge fund', 'private equity', 'venture capital', 'fintech',
+        'upi', 'digital payment', 'wallet', 'tax', 'gst', 'income tax'
+    ],
+    'sports': [
+        'sports', 'cricket', 'football', 'soccer', 'tennis', 'badminton',
+        'hockey', 'basketball', 'volleyball', 'athlete', 'tournament',
+        'championship', 'medal', 'olympics', 'match', 'game', 'team',
+        'player', 'coach', 'premier league', 'la liga', 'bundesliga',
+        'nba', 'nfl', 'fifa', 'uefa', 'formula 1', 'f1', 'grand prix',
+        'boxing', 'mma', 'ufc', 'wrestling', 'swimming', 'marathon',
+        'asian games', 'commonwealth games', 'world championship'
+    ],
+    'politics': [
+        'politics', 'election', 'parliament', 'government', 'minister',
+        'political', 'policy', 'vote', 'democracy', 'law', 'bill',
+        'congress', 'bjp', 'lok sabha', 'rajya sabha', 'pm', 'prime minister',
+        'president', 'cabinet', 'opposition', 'ruling party', 'manifesto',
+        'campaign', 'rally', 'mp', 'mla', 'governor', 'chief minister',
+        'supreme court', 'high court', 'judiciary', 'legislation',
+        'foreign policy', 'diplomacy', 'g20', 'brics', 'united nations'
+    ],
+    'health': [
+        'health', 'medical', 'doctor', 'hospital', 'disease', 'vaccine',
+        'covid', 'pandemic', 'wellness', 'fitness', 'nutrition', 'medicine',
+        'healthcare', 'virus', 'treatment', 'patient', 'surgery', 'diagnosis',
+        'mental health', 'anxiety', 'depression', 'therapy', 'counseling',
+        'diet', 'exercise', 'yoga', 'meditation', 'workout', 'gym',
+        'cancer', 'diabetes', 'heart disease', 'blood pressure', 'pharma'
+    ],
+    'entertainment': [
+        'entertainment', 'movie', 'film', 'cinema', 'bollywood', 'hollywood',
+        'actor', 'actress', 'celebrity', 'music', 'concert', 'album',
+        'netflix', 'amazon prime', 'ott', 'web series', 'tv show',
+        'box office', 'premiere', 'trailer', 'award', 'oscar', 'grammy',
+        'emmy', 'golden globe', 'filmfare', 'director', 'producer',
+        'streaming', 'disney', 'hotstar', 'youtube', 'influencer', 'viral'
+    ],
+    'education': [
+        'education', 'school', 'college', 'university', 'student', 'teacher',
+        'exam', 'admission', 'scholarship', 'degree', 'course', 'learning',
+        'neet', 'jee', 'upsc', 'cbse', 'icse', 'academic', 'graduation',
+        'iit', 'iim', 'nit', 'gate', 'cat', 'gmat', 'gre', 'board exam',
+        'online learning', 'edtech', 'byju', 'unacademy', 'coaching'
+    ],
+    'crypto': [
+        'crypto', 'cryptocurrency', 'bitcoin', 'btc', 'ethereum', 'eth',
+        'blockchain', 'web3', 'nft', 'defi', 'token', 'wallet', 'mining',
+        'altcoin', 'stablecoin', 'binance', 'coinbase', 'solana', 'dogecoin',
+        'smart contract', 'dapp', 'dao', 'airdrop', 'ico', 'crypto exchange'
+    ],
+    'startup': [
+        'startup', 'unicorn', 'funding', 'seed round', 'series a', 'series b',
+        'venture capital', 'vc', 'angel investor', 'accelerator', 'incubator',
+        'entrepreneur', 'founder', 'ceo', 'cto', 'pivot', 'acquisition',
+        'merger', 'ipo', 'valuation', 'burn rate', 'mvp', 'scale up',
+        'fintech', 'edtech', 'healthtech', 'y combinator', 'sequoia'
+    ],
+    'gaming': [
+        'gaming', 'video game', 'esports', 'playstation', 'xbox', 'nintendo',
+        'steam', 'pc gaming', 'mobile gaming', 'pubg', 'fortnite', 'call of duty',
+        'gta', 'minecraft', 'valorant', 'league of legends', 'dota',
+        'twitch', 'gamer', 'console', 'gpu', 'graphics card', 'ps5',
+        'bgmi', 'free fire', 'gaming tournament'
+    ],
+    'auto': [
+        'auto', 'automobile', 'car', 'bike', 'motorcycle', 'electric vehicle', 'ev',
+        'tesla', 'tata', 'mahindra', 'maruti', 'hyundai', 'toyota', 'honda',
+        'bmw', 'mercedes', 'audi', 'suv', 'sedan', 'hatchback',
+        'petrol', 'diesel', 'hybrid', 'charging station', 'battery',
+        'self driving', 'autonomous', 'car launch', 'auto expo'
+    ],
+    'travel': [
+        'travel', 'tourism', 'vacation', 'holiday', 'flight', 'airline',
+        'hotel', 'resort', 'booking', 'destination', 'trip', 'tour',
+        'passport', 'visa', 'airport', 'railway', 'train', 'cruise',
+        'makemytrip', 'airbnb', 'oyo', 'indigo', 'air india', 'travel advisory'
+    ],
+    'weather': [
+        'weather', 'rain', 'rainfall', 'monsoon', 'storm', 'cyclone', 'hurricane',
+        'flood', 'drought', 'heatwave', 'cold wave', 'snow', 'snowfall',
+        'temperature', 'forecast', 'imd', 'climate', 'climate change',
+        'global warming', 'thunderstorm', 'fog', 'smog', 'pollution', 'aqi'
+    ],
+    'realestate': [
+        'real estate', 'property', 'housing', 'apartment', 'flat', 'villa',
+        'builder', 'developer', 'construction', 'rera', 'home loan',
+        'mortgage', 'rent', 'tenant', 'landlord', 'commercial', 'residential',
+        'plot', 'land', 'infrastructure', 'smart city', 'affordable housing'
+    ],
+    'jobs': [
+        'jobs', 'job', 'employment', 'hiring', 'recruitment', 'vacancy',
+        'career', 'resume', 'interview', 'salary', 'layoff', 'fired',
+        'fresher', 'remote work', 'work from home', 'hybrid',
+        'linkedin', 'naukri', 'appraisal', 'promotion', 'internship',
+        'placement', 'campus recruitment', 'gig economy', 'freelance'
+    ],
+}
+
 def filter_articles(articles: List[Dict], topic: Optional[str], 
                    location: Optional[str], last_n_days: Optional[int]) -> List[Dict]:
     """Filter articles by topic, location, and date with deduplication."""
@@ -1385,8 +1560,17 @@ def filter_articles(articles: List[Dict], topic: Optional[str],
         
         # Topic filter with word boundary matching to avoid false positives
         if topic_lower:
-            # Use word boundary matching: \bai\b matches "ai" but not "paint" or "ukraine"
-            if not re.search(r'\b' + re.escape(topic_lower) + r'\b', text):
+            # Expand topic to related keywords if available
+            keywords = TOPIC_KEYWORDS.get(topic_lower, [topic_lower])
+            
+            # Check if any keyword matches
+            matched = False
+            for keyword in keywords:
+                if re.search(r'\b' + re.escape(keyword) + r'\b', text):
+                    matched = True
+                    break
+            
+            if not matched:
                 continue
         
         # Location filter with word boundary matching
@@ -1423,38 +1607,7 @@ def filter_articles(articles: List[Dict], topic: Optional[str],
     return filtered
 
 
-def find_site_by_domain(domain: str, config: List[Dict]) -> Optional[Dict]:
-    """
-    Find site config by domain name with flexible matching.
-    Supports:
-    - Exact match: 'openai.com' → 'openai.com'
-    - Partial match: 'openai' → 'openai.com'
-    - www prefix: 'www.openai.com' → 'openai.com'
-    """
-    domain = domain.lower().strip()
-    
-    # Remove www. prefix if present
-    if domain.startswith('www.'):
-        domain = domain[4:]
-    
-    # Try exact match first
-    for site in config:
-        site_domain = site.get('domain', '').lower()
-        if site_domain == domain:
-            return site
-    
-    # Try partial match (domain contains input or input contains domain)
-    for site in config:
-        site_domain = site.get('domain', '').lower()
-        # Remove www. from site domain too
-        if site_domain.startswith('www.'):
-            site_domain = site_domain[4:]
-        
-        # Check if input matches domain base (e.g., 'openai' matches 'openai.com')
-        if domain in site_domain or site_domain.startswith(domain + '.'):
-            return site
-    
-    return None
+
 
 # =============================================================================
 # PARALLEL FETCHING
@@ -1619,118 +1772,142 @@ def get_articles(domain: str, topic: Optional[str] = None,
             sources = [google_source]
             logger.info(f"Fast mode: Using Google News RSS only for {domain}")
     
-    # Fetch articles using priority-grouped parallel fetching
+    # Fetch articles using PARALLEL PRIORITY FETCHING (OPTIMIZED)
+    # All priority levels are fetched simultaneously for faster response
     result = None
     
     # Group sources by priority level
-    from collections import defaultdict
     sources_by_priority = defaultdict(list)
     for source in sources:
         priority = source.get('priority', 99)
         sources_by_priority[priority].append(source)
     
-    logger.info("Starting priority-grouped fetch for %d sources across %d priority levels", 
+    priority_levels = sorted(sources_by_priority.keys())
+    logger.info("Starting PARALLEL priority fetch for %d sources across %d priority levels", 
                len(sources), len(sources_by_priority),
                extra={'domain': domain, 'source_count': len(sources)})
     
-    # Try each priority level sequentially
-    for priority_level in sorted(sources_by_priority.keys()):
+    # OPTIMIZATION: Fetch ALL priority levels in parallel
+    # Each priority level runs its own parallel fetch
+    def fetch_priority_level(priority_level: int) -> Tuple[int, List[Dict], List[Tuple]]:
+        """Fetch all sources at a given priority level and return results."""
         priority_sources = sources_by_priority[priority_level]
-        
-        logger.info("Trying priority %d with %d sources", priority_level, len(priority_sources))
-        
-        # Fetch all sources at this priority level IN PARALLEL
         all_articles = []
         source_info = []
         
         if len(priority_sources) > 1:
-            # Parallel fetch for multiple sources at same priority - 5-second timeout
-            with ThreadPoolExecutor(max_workers=min(8, len(priority_sources))) as executor:
+            # Parallel fetch for multiple sources - reduced timeout
+            with ThreadPoolExecutor(max_workers=min(6, len(priority_sources))) as inner_executor:
                 future_to_source = {
-                    executor.submit(fetch_and_parse_source, src, domain): src
+                    inner_executor.submit(fetch_and_parse_source, src, domain): src
                     for src in priority_sources
                 }
                 
                 try:
-                    for future in as_completed(future_to_source, timeout=5):  # Reduced from 10s to 5s
-                        source = future_to_source[future]
+                    for future in as_completed(future_to_source, timeout=5):  # 5s timeout per priority (allows slower feeds)
                         try:
-                            articles, src_type, src_url = future.result(timeout=2)  # 2s max per source
+                            articles, src_type, src_url = future.result(timeout=3)  # 3s per source
                             if articles:
                                 all_articles.extend(articles)
                                 source_info.append((src_type, src_url, len(articles)))
-                                logger.info("Fetched %d articles from %s (%s)", 
-                                           len(articles), src_type, src_url)
-                        except Exception as e:
-                            logger.warning("Error fetching from %s: %s", 
-                                         source.get('type'), str(e))
+                        except Exception:
+                            pass
                 except FuturesTimeoutError:
-                    logger.warning("Priority %d timeout (5s) reached, using partial results", priority_level)
+                    pass  # Use partial results
         else:
-            # Single source at this priority - fetch directly
+            # Single source
             source = priority_sources[0]
             try:
                 articles, src_type, src_url = fetch_and_parse_source(source, domain)
                 if articles:
                     all_articles.extend(articles)
                     source_info.append((src_type, src_url, len(articles)))
-            except Exception as e:
-                logger.warning("Error fetching from %s: %s", source.get('type'), str(e))
+            except Exception:
+                pass
         
-        if not all_articles:
-            logger.info("No articles from priority %d, trying next priority", priority_level)
+        return (priority_level, all_articles, source_info)
+    
+    # Launch all priority levels in parallel with overall 10-second timeout
+    priority_results = {}
+    with ThreadPoolExecutor(max_workers=len(priority_levels)) as executor:
+        future_to_priority = {
+            executor.submit(fetch_priority_level, pl): pl
+            for pl in priority_levels
+        }
+        
+        try:
+            for future in as_completed(future_to_priority, timeout=10):  # 10s overall timeout
+                pl = future_to_priority[future]
+                try:
+                    priority_level, articles, source_info = future.result(timeout=6)  # 6s per priority
+                    if articles:
+                        priority_results[priority_level] = (articles, source_info)
+                        logger.info("Priority %d returned %d articles", priority_level, len(articles))
+                    else:
+                        logger.info("Priority %d returned 0 articles", priority_level)
+                except Exception as e:
+                    logger.warning("Priority %d fetch error: %s", pl, str(e))
+        except FuturesTimeoutError:
+            logger.warning("Parallel priority fetch timeout (10s), got %d of %d priorities", 
+                          len(priority_results), len(priority_levels))
+    
+    logger.info("Collected results from priorities: %s", list(priority_results.keys()))
+    
+    # Process results in priority order (lower = higher priority)
+    # FIXED: Aggregate articles from multiple priorities if needed to reach requested count
+    aggregated_articles = []
+    aggregated_sources = []
+    seen_urls = set()  # Global dedup across all priorities
+    
+    for priority_level in priority_levels:
+        if priority_level not in priority_results:
             continue
         
-        # Deduplicate articles (by URL)
-        seen_urls = set()
-        unique_articles = []
+        all_articles, source_info = priority_results[priority_level]
+        
+        # Deduplicate against already collected articles
+        new_articles = []
         for article in all_articles:
             url = article.get('url', '')
             if url and url not in seen_urls:
                 seen_urls.add(url)
-                unique_articles.append(article)
+                new_articles.append(article)
         
-        logger.info("Merged %d articles from priority %d (deduplicated to %d)", 
-                   len(all_articles), priority_level, len(unique_articles))
+        if not new_articles:
+            continue
         
         # Filter by topic, location, date
-        filtered = filter_articles(unique_articles, topic_clean, location_clean, last_n_days)
+        filtered = filter_articles(new_articles, topic_clean, location_clean, last_n_days)
         
-        logger.info("Filtered to %d articles", len(filtered),
-                   extra={'article_count': len(filtered)})
+        logger.info("Priority %d: %d articles (deduplicated to %d, filtered to %d)", 
+                   priority_level, len(all_articles), len(new_articles), len(filtered))
         
-        # Check if we have enough articles
         if filtered:
-            if len(filtered) >= MIN_ARTICLES_THRESHOLD:
-                # We have enough articles, use this priority level
-                sources_used = ", ".join([f"{st}" for st, su, _ in source_info[:3]])  # Show first 3
-                if len(source_info) > 3:
-                    sources_used += f" +{len(source_info)-3} more"
-                logger.info("Found %d articles from priority %d (>= threshold %d), using these sources", 
-                           len(filtered), priority_level, MIN_ARTICLES_THRESHOLD)
-                result = {
-                    "sourceUsed": f"priority_{priority_level} [{sources_used}]",
-                    "articles": filtered,
-                    "cached": False
-                }
+            aggregated_articles.extend(filtered)
+            aggregated_sources.append((priority_level, source_info, len(filtered)))
+            
+            logger.info("Aggregated total: %d articles (need %d)", len(aggregated_articles), count)
+            
+            # If we have enough articles, stop looking at more priorities
+            if len(aggregated_articles) >= count:
+                logger.info("Reached requested count %d, stopping priority scan", count)
                 break
-            else:
-                # Not enough articles, try next priority but keep this as fallback
-                sources_used = ", ".join([f"{st}" for st, su, _ in source_info[:3]])
-                if len(source_info) > 3:
-                    sources_used += f" +{len(source_info)-3} more"
-                logger.info("Found only %d articles from priority %d (< threshold %d), trying next priority", 
-                           len(filtered), priority_level, MIN_ARTICLES_THRESHOLD)
-                if result is None or len(filtered) > len(result.get('articles', [])):
-                    # Keep this result as fallback if it's better than what we have
-                    result = {
-                        "sourceUsed": f"priority_{priority_level} [{sources_used}]",
-                        "articles": filtered,
-                        "cached": False
-                    }
-                    logger.info("Kept priority %d as fallback with %d articles", priority_level, len(filtered))
-        else:
-            logger.info("No articles passed filters from priority %d, trying next priority", priority_level)
+    
+    # Build result from aggregated articles
+    if aggregated_articles:
+        # Build source description
+        sources_desc_parts = []
+        for plevel, sinfo, scount in aggregated_sources:
+            src_types = ", ".join([f"{st}" for st, su, _ in sinfo[:2]])
+            if len(sinfo) > 2:
+                src_types += f" +{len(sinfo)-2}"
+            sources_desc_parts.append(f"p{plevel}[{src_types}]({scount})")
+        
+        result = {
+            "sourceUsed": " + ".join(sources_desc_parts),
+            "articles": aggregated_articles,
+            "cached": False
+        }
     
     # Build final result with user-friendly messaging
     if result is None:
@@ -2032,7 +2209,7 @@ def handle_request(request: Dict) -> Optional[Dict]:
                                 "fast_mode": {
                                     "type": "boolean",
                                     "description": "Skip to Google News directly (faster but may miss some articles)",
-                                    "default": false
+                                    "default": False
                                 }
                             },
                             "required": ["domain"]
