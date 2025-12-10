@@ -18,31 +18,36 @@ __pycache__/
 node_modules/
 PRD_LOCAL.md
 
-# Test files (removed - only keeping reference files)
-test_aifire_*.py
-test_aimultiple_*.py
-test_deep_scraper.py
-test_google_news_*.py
-test_official_rss.py
-test_speed.py
-check_moneycontrol.py
-check_official_rss.py
-validate_*.py
-verify_*.py
-
 # Coverage and pytest
 .coverage
 .pytest_cache/
+htmlcov/
 
-# Ignore test files and directories
-test*
-tests/
-.pytest_cache/
-.coverage
+# Debug and one-off scripts
+debug_*.py
+check_*.py
+fetch_*.py
+*_test.py
+ndtv_test.py
+perf_test.py
+topics_check.py
+gn_*.py
 
-# Add any other files or folders you want Git to ignore below
-validate_new_sites.py
-validate_rss_feed.py
-validate_sites.py
-verify_reorder.py
-check_moneycontrol.py
+# Test output files
+*.txt
+!README.txt
+!requirements.txt
+
+# Keep these test files (explicitly tracked)
+!comprehensive_test.py
+!quick_test.py
+!run_mcp_test.py
+!check_logic_manual.py
+
+# Validate/verify scripts
+validate_*.py
+verify_*.py
+
+# Reports (optional - remove ! to ignore them)
+# PERFORMANCE_REPORT.md
+# PROJECT_EVALUATION_REPORT.md
