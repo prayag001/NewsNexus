@@ -439,6 +439,60 @@ def sanitize_for_filter(s: Any, max_length: int = 100) -> str:
     return s[:max_length].strip().lower()
 
 
+def is_quality_article(article: Dict) -> bool:
+    """
+    Validate article quality to filter out low-quality scraped content.
+    
+    Returns True if article meets quality standards:
+    - Has meaningful title (not generic like "E-Paper" or "Home")
+    - Has proper URL (not landing page)
+    - Has date OR has meaningful summary
+    - Title is not too short or navigation-like
+    """
+    title = article.get('title', '').strip()
+    url = article.get('url', '').strip()
+    published_at = article.get('published_at')
+    summary = article.get('summary', '').strip()
+    
+    # Must have title and URL
+    if not title or not url:
+        return False
+    
+    # Check for generic/navigation titles
+    generic_titles = [
+        'home', 'homepage', 'news', 'e-paper', 'epaper', 'login', 'subscribe',
+        'menu', 'about', 'contact', 'privacy', 'terms', 'sitemap', 'search'
+    ]
+    title_lower = title.lower()
+    if any(generic in title_lower for generic in generic_titles):
+        # Allow if it's part of a longer, more specific title
+        if len(title) < 20:
+            return False
+    
+    # Title should be meaningful (at least 15 chars for real news)
+    if len(title) < 15:
+        return False
+    
+    # Check URL patterns that indicate landing/navigation pages
+    url_lower = url.lower()
+    bad_url_patterns = [
+        '/home', '/index', '/sitemap', '/about', '/contact',
+        '/privacy', '/terms', '/login', '/subscribe', '/newsletter'
+    ]
+    if any(pattern in url_lower.split('?')[0] for pattern in bad_url_patterns):
+        return False
+    
+    # Article must have either:
+    # 1. A publication date (indicates it's timestamped content), OR
+    # 2. A meaningful summary (at least 50 chars of actual content)
+    has_date = published_at is not None
+    has_summary = len(summary) >= 50
+    
+    if not has_date and not has_summary:
+        return False
+    
+    return True
+
 
 def find_site_by_domain(domain: str, config: List[Dict]) -> Optional[Dict]:
     """
@@ -924,7 +978,13 @@ def parse_html_scraper(content: bytes, domain: str, base_url: str) -> List[Dict]
             except Exception:
                 continue
     
-    return articles
+    # Filter out low-quality articles (e-paper links, landing pages, etc.)
+    quality_articles = [art for art in articles if is_quality_article(art)]
+    
+    logger.debug("Scraper filtered %d/%d articles for quality", 
+                 len(quality_articles), len(articles))
+    
+    return quality_articles
 
 
 def extract_article_from_element(item, domain: str, base_url: str) -> Optional[Dict]:
