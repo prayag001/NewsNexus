@@ -11,14 +11,14 @@ A production-ready, intelligent news aggregation system with **sophisticated top
 
 NewsNexus is a sophisticated news aggregator that fetches **only the latest news** (15 days by default) with intelligent topic filtering, priority-based fallback architecture, and parallel multi-feed processing. Built as a **Model Context Protocol (MCP) server** for seamless AI integration.
 
-**Latest Update (Dec 9, 2025):** Fixed word boundary matching in topic filtering to eliminate false positives (e.g., "ai" in "paint" or "Ukraine"). Now correctly identifies AI-specific articles using regex word boundaries (`\bai\b`).
+**Latest Update (Dec 10, 2025):** Fixed Google News RSS parsing bug, updated all 42 Google News URLs to US locale, and enhanced topic keywords to 17 categories with 500+ keywords.
 
 ### 🌟 Key Features
 
 - ✅ **Smart Recent News Filter**: Default 15-day cap ensures only recent/latest/top news (max 365 days)
-- ✅ **Intelligent Topic Filtering**: Word boundary matching prevents false positives (e.g., "AI" ≠ "paint" or "Ukraine")
-- ✅ **3-Priority Fallback Architecture**: Official RSS → Google News (quality-checked) → HTML Scraper
-- ✅ **Multi-Feed Parallel Processing**: Fetch 26+ RSS feeds simultaneously across 7 priority domains
+- ✅ **Intelligent Topic Filtering**: Word boundary matching + 17 topic categories with 500+ keywords
+- ✅ **3-Priority Fallback Architecture**: Official RSS → Google News → HTML Scraper
+- ✅ **Multi-Feed Parallel Processing**: Fetch 45+ RSS feeds simultaneously across priority domains
 - ✅ **Priority-Based Fetching**: Always respects domain priority order (NDTV > Indian Express > etc.)
 - ✅ **Flexible Domain Matching**: Use partial names (`openai` → `openai.com`, `ndtv` → `ndtv.com`)
 - ✅ **Smart Deduplication**: URL and title-based deduplication with fuzzy matching
@@ -29,6 +29,34 @@ NewsNexus is a sophisticated news aggregator that fetches **only the latest news
 ---
 
 ## 📌 Recent Fixes & Updates (December 2025)
+
+### ✨ December 10, 2025 - Google News Fix & Topic Keyword Expansion
+
+**Problems Fixed:**
+1. **Google News RSS articles all deduplicated to 1** - `source.href` only contained domain, not full article URL
+2. **Topic filter too strict** - Only matched exact keyword, missed related terms
+
+**Solutions Implemented:**
+```python
+# Fix 1: Keep unique Google redirect URLs instead of extracting domain
+# Google redirect URLs like news.google.com/rss/articles/... are unique and work when clicked
+
+# Fix 2: Enhanced topic keywords with 17 categories
+TOPIC_KEYWORDS = {
+    'ai': ['ai', 'artificial intelligence', 'chatgpt', 'openai', 'gemini', 'claude', ...],  # 56 keywords
+    'tech': ['technology', 'software', 'startup', 'gadget', 'smartphone', ...],  # 60 keywords
+    'crypto': ['bitcoin', 'ethereum', 'blockchain', 'nft', 'defi', ...],  # 25 keywords
+    'startup': ['unicorn', 'funding', 'venture capital', 'founder', ...],  # 28 keywords
+    'gaming': ['esports', 'playstation', 'xbox', 'pubg', 'fortnite', ...],  # 26 keywords
+    # + 12 more categories: cricket, finance, sports, politics, health, entertainment, 
+    #                        education, auto, travel, weather, realestate, jobs
+}
+```
+
+**Additional Changes:**
+- Updated all 42 Google News URLs to US locale (`&hl=en-US&gl=US&ceid=US:en`) for better results
+- Fixed TechCrunch RSS URL (was pointing to fake feedburner feed)
+- Synced TOPIC_KEYWORDS between `main.py` and `fetch_topic_news.py`
 
 ### ✨ December 9, 2025 - Critical Topic Filtering Fix
 
