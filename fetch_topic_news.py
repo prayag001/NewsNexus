@@ -289,7 +289,7 @@ def fetch_from_nonpriority_fallback(topic_keywords, location=None, limit=8, days
     
     return result
 
-def fetch_topic_news(topic, location=None, limit=8, days=10):
+def fetch_topic_news(topic, location=None, limit=8, days=10, domain=None):
     """Main function to fetch news for any topic."""
     topic_lower = topic.lower().strip()
     
@@ -310,6 +310,14 @@ def fetch_topic_news(topic, location=None, limit=8, days=10):
     
     if location:
         log(f"Location: {location}")
+        
+    # If specific domain provided, fetch only from there
+    if domain:
+        log(f"Fetching from specific domain: {domain}")
+        result = get_articles(domain, location=location, lastNDays=days, count=limit)
+        if result and result.get('articles'):
+            return result['articles'][:limit]
+        return []
     
     # Try priority domains first
     articles = fetch_from_priority_domains(keywords, location, limit, days)
@@ -340,6 +348,8 @@ Available topics: {', '.join(TOPIC_KEYWORDS.keys())}, general
                        help='Topic to fetch news for (default: ai). Use "general" for no topic filter.')
     parser.add_argument('--location', type=str,
                        help='Location to filter by (e.g. pune, india)')
+    parser.add_argument('--domain', type=str,
+                       help='Specific domain to fetch from (optional, overrides topic lookup)')
     parser.add_argument('--json', action='store_true',
                        help='Output as JSON')
     parser.add_argument('--limit', type=int, default=8,
@@ -354,7 +364,7 @@ Available topics: {', '.join(TOPIC_KEYWORDS.keys())}, general
     if args.json:
         QUIET_MODE = True
     
-    articles = fetch_topic_news(args.topic, args.location, args.limit, args.days)
+    articles = fetch_topic_news(args.topic, args.location, args.limit, args.days, args.domain)
     
     if args.json:
         print(json.dumps(articles, indent=2, ensure_ascii=False))

@@ -43,6 +43,8 @@ gn_*.py
 !quick_test.py
 !run_mcp_test.py
 !check_logic_manual.py
+!fetch_topic_news.py
+!nandurbar_results.txt
 
 # Validate/verify scripts
 validate_*.py

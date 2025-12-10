@@ -832,9 +832,9 @@ def parse_html_scraper(content: bytes, domain: str, base_url: str) -> List[Dict]
         if len(articles) >= MAX_ARTICLES_PER_REQUEST:
             break
     
-    # Strategy 2: Look for headline links if no articles found
+    # Strategy 2: Look for headline links if not enough articles found
     if len(articles) < 5:
-        for tag_name in ['h1', 'h2', 'h3']:
+        for tag_name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:  # Extended to h4-h6
             for tag in soup.find_all(tag_name, limit=50):
                 try:
                     link = tag.find('a')
@@ -842,6 +842,11 @@ def parse_html_scraper(content: bytes, domain: str, base_url: str) -> List[Dict]
                         parent = tag.parent
                         if parent and parent.name == 'a':
                             link = parent
+                        # Also check siblings for links (Pudhari-style)
+                        elif parent:
+                            sibling_link = parent.find('a', href=True)
+                            if sibling_link:
+                                link = sibling_link
                     
                     if not link or not link.get('href'):
                         continue
@@ -851,6 +856,9 @@ def parse_html_scraper(content: bytes, domain: str, base_url: str) -> List[Dict]
                         continue
                     
                     title = sanitize_string(tag.get_text(), max_length=300)
+                    if not title or len(title) < 10:
+                        # Try link text as title
+                        title = sanitize_string(link.get_text(), max_length=300)
                     if not title or len(title) < 10:
                         continue
                     
@@ -872,6 +880,49 @@ def parse_html_scraper(content: bytes, domain: str, base_url: str) -> List[Dict]
             
             if len(articles) >= MAX_ARTICLES_PER_REQUEST:
                 break
+    
+    # Strategy 3: Look for article-like URLs directly (for sites like Pudhari)
+    if len(articles) < 5:
+        for link in soup.find_all('a', href=True, limit=100):
+            try:
+                href = str(link.get('href', ''))
+                # Skip navigation, author, category links
+                if not href or '/author/' in href or len(href) < 50:
+                    continue
+                
+                # Look for article URL patterns (slug at end)
+                url = normalize_url(href, domain, base_url)
+                if not url or url in seen_urls:
+                    continue
+                
+                # Check if URL looks like an article (has slug-like ending)
+                if not any(c.isalpha() for c in url.split('/')[-1]):
+                    continue
+                
+                # Get title from link text or nearby heading
+                title = sanitize_string(link.get_text(), max_length=300)
+                
+                # Skip very short or navigation-like text
+                if not title or len(title) < 15:
+                    continue
+                if title.lower() in ['read more', 'more', 'click here', 'view']:
+                    continue
+                
+                seen_urls.add(url)
+                articles.append({
+                    'title': title,
+                    'url': url,
+                    'published_at': None,
+                    'summary': '',
+                    'author': '',
+                    'tags': [],
+                    'source_domain': domain
+                })
+                
+                if len(articles) >= MAX_ARTICLES_PER_REQUEST:
+                    break
+            except Exception:
+                continue
     
     return articles
 
@@ -1804,9 +1855,10 @@ def get_articles(domain: str, topic: Optional[str] = None,
                 }
                 
                 try:
-                    for future in as_completed(future_to_source, timeout=5):  # 5s timeout per priority (allows slower feeds)
+                    for future in as_completed(future_to_source, timeout=15):  # 15s timeout per priority group
                         try:
-                            articles, src_type, src_url = future.result(timeout=3)  # 3s per source
+                            # Use a generous timeout here, let the inner request timeout handle the specific limit
+                            articles, src_type, src_url = future.result(timeout=10)
                             if articles:
                                 all_articles.extend(articles)
                                 source_info.append((src_type, src_url, len(articles)))
@@ -1836,10 +1888,10 @@ def get_articles(domain: str, topic: Optional[str] = None,
         }
         
         try:
-            for future in as_completed(future_to_priority, timeout=10):  # 10s overall timeout
+            for future in as_completed(future_to_priority, timeout=20):  # 20s overall timeout
                 pl = future_to_priority[future]
                 try:
-                    priority_level, articles, source_info = future.result(timeout=6)  # 6s per priority
+                    priority_level, articles, source_info = future.result(timeout=15)  # 15s per priority
                     if articles:
                         priority_results[priority_level] = (articles, source_info)
                         logger.info("Priority %d returned %d articles", priority_level, len(articles))
