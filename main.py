@@ -880,71 +880,111 @@ def parse_html_scraper(content: bytes, domain: str, base_url: str) -> List[Dict]
     """Parse HTML page for articles using multiple strategies."""
     articles = []
     seen_urls = set()
-    
-    try:
-        # Use lxml for speed if available, otherwise fallback
-        soup = BeautifulSoup(content, 'lxml')
-    except Exception:
-        # Fallback to html.parser if lxml fails or isn't installed (though it should be)
+    page_count = 0
+    max_pages = 5  # Limit pagination to avoid infinite loops
+    next_page_url = base_url
+    soup = None
+
+    while next_page_url and page_count < max_pages and len(articles) < MAX_ARTICLES_PER_REQUEST:
+        page_count += 1
         try:
-            soup = BeautifulSoup(content, 'html.parser')
+            if page_count == 1:
+                # Use already-fetched content for first page
+                content_to_parse = content
+            else:
+                resp = requests.get(next_page_url, timeout=8)
+                if not resp.ok:
+                    break
+                content_to_parse = resp.content
+            try:
+                soup = BeautifulSoup(content_to_parse, 'lxml')
+            except Exception:
+                soup = BeautifulSoup(content_to_parse, 'html.parser')
         except Exception as e:
             logger.error("Failed to parse HTML: %s", str(e))
-            return []
-    
-    # Remove unwanted elements
-    for elem in soup.find_all(['script', 'style', 'nav', 'footer', 'aside', 'noscript']):
-        elem.decompose()
-    
-    # Strategy 1: Look for semantic article elements
-    for selector in ARTICLE_SELECTORS:
-        try:
-            items = soup.select(selector)
-            for item in items[:30]:
-                article = extract_article_from_element(item, domain, base_url)
-                if article and article['url'] not in seen_urls:
-                    seen_urls.add(article['url'])
-                    articles.append(article)
-                    
-                    if len(articles) >= MAX_ARTICLES_PER_REQUEST:
-                        break
-        except Exception as e:
-            logger.debug("Selector %s failed: %s", selector, str(e))
-            continue
-        
-        if len(articles) >= MAX_ARTICLES_PER_REQUEST:
             break
-    
-    # Strategy 2: Look for headline links if not enough articles found
-    if len(articles) < 5:
-        for tag_name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:  # Extended to h4-h6
-            for tag in soup.find_all(tag_name, limit=50):
-                try:
-                    link = tag.find('a')
-                    if not link:
-                        parent = tag.parent
-                        if parent and parent.name == 'a':
-                            link = parent
-                        # Also check siblings for links (Pudhari-style)
-                        elif parent:
-                            sibling_link = parent.find('a', href=True)
-                            if sibling_link:
-                                link = sibling_link
-                    
-                    if not link or not link.get('href'):
+
+        # Remove unwanted elements
+        for elem in soup.find_all(['script', 'style', 'nav', 'footer', 'aside', 'noscript']):
+            elem.decompose()
+
+        # Strategy 1: Look for semantic article elements
+        for selector in ARTICLE_SELECTORS:
+            try:
+                items = soup.select(selector)
+                for item in items[:30]:
+                    article = extract_article_from_element(item, domain, base_url)
+                    if article and article['url'] not in seen_urls:
+                        seen_urls.add(article['url'])
+                        articles.append(article)
+                        if len(articles) >= MAX_ARTICLES_PER_REQUEST:
+                            break
+            except Exception as e:
+                logger.debug("Selector %s failed: %s", selector, str(e))
+                continue
+            if len(articles) >= MAX_ARTICLES_PER_REQUEST:
+                break
+
+        # Strategy 2: Look for headline links if not enough articles found
+        if len(articles) < 5:
+            for tag_name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+                for tag in soup.find_all(tag_name, limit=50):
+                    try:
+                        link = tag.find('a')
+                        if not link:
+                            parent = tag.parent
+                            if parent and parent.name == 'a':
+                                link = parent
+                            elif parent:
+                                sibling_link = parent.find('a', href=True)
+                                if sibling_link:
+                                    link = sibling_link
+                        if not link or not link.get('href'):
+                            continue
+                        url = normalize_url(str(link.get('href')), domain, base_url)
+                        if not url or url in seen_urls:
+                            continue
+                        title = sanitize_string(tag.get_text(), max_length=300)
+                        if not title or len(title) < 10:
+                            title = sanitize_string(link.get_text(), max_length=300)
+                        if not title or len(title) < 10:
+                            continue
+                        seen_urls.add(url)
+                        articles.append({
+                            'title': title,
+                            'url': url,
+                            'published_at': None,
+                            'summary': '',
+                            'author': '',
+                            'tags': [],
+                            'source_domain': domain
+                        })
+                        if len(articles) >= MAX_ARTICLES_PER_REQUEST:
+                            break
+                    except Exception:
                         continue
-                    
-                    url = normalize_url(str(link.get('href')), domain, base_url)
+                if len(articles) >= MAX_ARTICLES_PER_REQUEST:
+                    break
+
+        # Strategy 3: Look for article-like URLs directly (for sites like Pudhari)
+        if len(articles) < 5:
+            for link in soup.find_all('a', href=True, limit=200):
+                try:
+                    href = str(link.get('href', ''))
+                    # Skip navigation, author, category links
+                    if not href or '/author/' in href or len(href) < 10:
+                        continue
+                    url = normalize_url(href, domain, base_url)
                     if not url or url in seen_urls:
                         continue
-                    
-                    title = sanitize_string(tag.get_text(), max_length=300)
-                    if not title or len(title) < 10:
-                        # Try link text as title
-                        title = sanitize_string(link.get_text(), max_length=300)
+                    # Check if URL looks like an article (has slug-like ending)
+                    if not any(c.isalpha() for c in url.split('/')[-1]):
+                        continue
+                    title = sanitize_string(link.get_text(), max_length=300)
                     if not title or len(title) < 10:
                         continue
-                    
+                    if title.lower() in ['read more', 'more', 'click here', 'view']:
+                        continue
                     seen_urls.add(url)
                     articles.append({
                         'title': title,
@@ -955,64 +995,25 @@ def parse_html_scraper(content: bytes, domain: str, base_url: str) -> List[Dict]
                         'tags': [],
                         'source_domain': domain
                     })
-                    
                     if len(articles) >= MAX_ARTICLES_PER_REQUEST:
                         break
                 except Exception:
                     continue
-            
-            if len(articles) >= MAX_ARTICLES_PER_REQUEST:
-                break
-    
-    # Strategy 3: Look for article-like URLs directly (for sites like Pudhari)
-    if len(articles) < 5:
-        for link in soup.find_all('a', href=True, limit=100):
-            try:
-                href = str(link.get('href', ''))
-                # Skip navigation, author, category links
-                if not href or '/author/' in href or len(href) < 50:
-                    continue
-                
-                # Look for article URL patterns (slug at end)
-                url = normalize_url(href, domain, base_url)
-                if not url or url in seen_urls:
-                    continue
-                
-                # Check if URL looks like an article (has slug-like ending)
-                if not any(c.isalpha() for c in url.split('/')[-1]):
-                    continue
-                
-                # Get title from link text or nearby heading
-                title = sanitize_string(link.get_text(), max_length=300)
-                
-                # Skip very short or navigation-like text
-                if not title or len(title) < 15:
-                    continue
-                if title.lower() in ['read more', 'more', 'click here', 'view']:
-                    continue
-                
-                seen_urls.add(url)
-                articles.append({
-                    'title': title,
-                    'url': url,
-                    'published_at': None,
-                    'summary': '',
-                    'author': '',
-                    'tags': [],
-                    'source_domain': domain
-                })
-                
-                if len(articles) >= MAX_ARTICLES_PER_REQUEST:
-                    break
-            except Exception:
-                continue
-    
+
+        # Pagination: look for next/older page links
+        next_page_url = None
+        next_link = soup.find('a', string=re.compile(r'(next|older|more|load)', re.I))
+        if next_link and next_link.get('href'):
+            next_page_url = normalize_url(next_link.get('href'), domain, base_url)
+        # Some sites use rel="next"
+        if not next_page_url:
+            rel_next = soup.find('a', rel='next')
+            if rel_next and rel_next.get('href'):
+                next_page_url = normalize_url(rel_next.get('href'), domain, base_url)
+
     # Filter out low-quality articles (e-paper links, landing pages, etc.)
     quality_articles = [art for art in articles if is_quality_article(art)]
-    
-    logger.debug("Scraper filtered %d/%d articles for quality", 
-                 len(quality_articles), len(articles))
-    
+    logger.debug("Scraper filtered %d/%d articles for quality", len(quality_articles), len(articles))
     return quality_articles
 
 
