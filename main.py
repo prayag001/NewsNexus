@@ -482,6 +482,35 @@ def is_quality_article(article: Dict) -> bool:
     if any(pattern in url_lower.split('?')[0] for pattern in bad_url_patterns):
         return False
     
+    # Filter out category/landing pages (URLs ending with just directory name)
+    # Examples: lokmat.com/nandurbar/, lokmat.com/maharashtra/, lokmat.com/mumbai/
+    # Real articles usually have slugs like: lokmat.com/nandurbar/some-news-title-123
+    url_path = urlparse(url).path.rstrip('/')
+    if url_path:
+        path_parts = url_path.split('/')
+        if len(path_parts) > 0:
+            last_segment = path_parts[-1]
+            
+            # Category pages check: either simple word OR generic category terms
+            category_keywords = [
+                'news', 'latest', 'breaking', 'live', 'videos', 'photos', 'gallery',
+                'nandurbar', 'maharashtra', 'mumbai', 'pune', 'nagpur', 'delhi',
+                'sports', 'politics', 'entertainment', 'business', 'tech', 'world',
+                'live-news', 'trending', 'top-news', 'headlines'
+            ]
+            
+            # Check if last segment matches known category patterns
+            if last_segment.lower() in category_keywords:
+                return False
+            
+            # Check for short URLs with only location/category (typically < 20 chars without numbers)
+            # Real article URLs usually have longer slugs with article IDs or longer titles
+            if len(last_segment) < 20 and not any(c.isdigit() for c in last_segment):
+                # If it's a single word or hyphenated pair without numbers, likely a category
+                word_count = len([w for w in last_segment.split('-') if w])
+                if word_count <= 2:
+                    return False
+    
     # Article must have either:
     # 1. A publication date (indicates it's timestamped content), OR
     # 2. A meaningful summary (at least 50 chars of actual content)
