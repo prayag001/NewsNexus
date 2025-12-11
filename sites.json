@@ -1166,6 +1166,30 @@
     ]
   },
   {
+    "name": "MarkTechPost",
+    "domain": "marktechpost.com",
+    "sources": [
+      {
+        "type": "official_rss",
+        "url": "https://www.marktechpost.com/feed/",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:marktechpost.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.marktechpost.com/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
+    ]
+  },
+  {
     "name": "TechCrunch",
     "domain": "techcrunch.com",
     "sources": [

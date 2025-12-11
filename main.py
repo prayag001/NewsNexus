@@ -59,8 +59,8 @@ CONFIG_PATH = os.environ.get(
 MAX_RETRIES = 0  # No retries - fail fast and move to next source
 RETRY_BACKOFF = 0.3
 
-# Request settings - BALANCED: Allow 2.5s for slower feeds but still fast overall
-DEFAULT_TIMEOUT_MS = 2500  # Increased from 1500ms - some feeds are slow but working
+# Request settings - FAST: Quick timeout for faster response
+DEFAULT_TIMEOUT_MS = 3000  # 3 seconds - fast but allows most feeds to respond
 USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
 # Deep scraper settings
@@ -768,20 +768,16 @@ def parse_rss_feed(content: bytes, domain: str) -> List[Dict]:
         try:
             title = sanitize_string(getattr(entry, 'title', ''), max_length=300)
             link = getattr(entry, 'link', '')
-            
             if not title or not link:
                 continue
-            
             # For Google News URLs, keep the redirect link as-is
             # The redirect URLs are unique per article and will work when clicked
             # Note: entry.source.href only contains the domain, not the full article URL
             # so we cannot use it for deduplication - keep the Google redirect URL instead
-            
             # Validate URL
             valid, _ = validate_url(link)
             if not valid:
                 continue
-            
             # Parse published date
             published_at = None
             if hasattr(entry, 'published_parsed') and entry.published_parsed:
@@ -789,55 +785,40 @@ def parse_rss_feed(content: bytes, domain: str) -> List[Dict]:
                     published_at = datetime(*entry.published_parsed[:6], tzinfo=timezone.utc).isoformat()
                 except (ValueError, TypeError, IndexError):
                     pass
-            
             if not published_at and hasattr(entry, 'updated_parsed') and entry.updated_parsed:
                 try:
                     published_at = datetime(*entry.updated_parsed[:6], tzinfo=timezone.utc).isoformat()
                 except (ValueError, TypeError, IndexError):
                     pass
-            
             if not published_at:
                 for attr in ('published', 'updated', 'created'):
                     if hasattr(entry, attr) and getattr(entry, attr):
                         published_at = parse_date(str(getattr(entry, attr)))
                         if published_at:
                             break
-            
             # Get summary
             summary = ''
             if hasattr(entry, 'summary'):
                 summary = sanitize_string(entry.summary, max_length=1000)
             elif hasattr(entry, 'description'):
                 summary = sanitize_string(entry.description, max_length=1000)
-            
             # Get author
             author = ''
             if hasattr(entry, 'author'):
                 author = sanitize_string(entry.author, max_length=100)
-            
-            # Get categories/tags
-            tags = []
-            if hasattr(entry, 'tags'):
-                for tag in entry.tags[:5]:
-                    if hasattr(tag, 'term'):
-                        tags.append(sanitize_string(tag.term, max_length=50))
-            
-            articles.append({
+            # Compose article dict and append
+            article = {
                 'title': title,
-                'url': link,
+                'link': link,
                 'published_at': published_at,
                 'summary': summary,
-                'author': author,
-                'tags': tags,
-                'source_domain': domain
-            })
-            
+                'author': author
+            }
+            articles.append(article)
         except Exception as e:
-            logger.debug("Error parsing RSS entry: %s", str(e))
+            logger.warning(f"Error parsing RSS entry: {e}")
             continue
-    
     return articles
-
 # =============================================================================
 # HTML SCRAPING
 # =============================================================================
@@ -1937,18 +1918,18 @@ def get_articles(domain: str, topic: Optional[str] = None,
         source_info = []
         
         if len(priority_sources) > 1:
-            # Parallel fetch for multiple sources - reduced timeout
-            with ThreadPoolExecutor(max_workers=min(6, len(priority_sources))) as inner_executor:
+            # Parallel fetch for multiple sources - optimized timeout
+            with ThreadPoolExecutor(max_workers=min(4, len(priority_sources))) as inner_executor:
                 future_to_source = {
                     inner_executor.submit(fetch_and_parse_source, src, domain): src
                     for src in priority_sources
                 }
                 
                 try:
-                    for future in as_completed(future_to_source, timeout=15):  # 15s timeout per priority group
+                    for future in as_completed(future_to_source, timeout=6):  # 6s timeout per priority group
                         try:
-                            # Use a generous timeout here, let the inner request timeout handle the specific limit
-                            articles, src_type, src_url = future.result(timeout=10)
+                            # Quick timeout - let individual requests handle their own limits
+                            articles, src_type, src_url = future.result(timeout=3)
                             if articles:
                                 all_articles.extend(articles)
                                 source_info.append((src_type, src_url, len(articles)))
@@ -1969,19 +1950,19 @@ def get_articles(domain: str, topic: Optional[str] = None,
         
         return (priority_level, all_articles, source_info)
     
-    # Launch all priority levels in parallel with overall 10-second timeout
+    # Launch all priority levels in parallel with overall 8-second timeout
     priority_results = {}
-    with ThreadPoolExecutor(max_workers=len(priority_levels)) as executor:
+    with ThreadPoolExecutor(max_workers=min(3, len(priority_levels))) as executor:
         future_to_priority = {
             executor.submit(fetch_priority_level, pl): pl
             for pl in priority_levels
         }
         
         try:
-            for future in as_completed(future_to_priority, timeout=20):  # 20s overall timeout
+            for future in as_completed(future_to_priority, timeout=8):  # 8s overall timeout
                 pl = future_to_priority[future]
                 try:
-                    priority_level, articles, source_info = future.result(timeout=15)  # 15s per priority
+                    priority_level, articles, source_info = future.result(timeout=6)  # 6s per priority
                     if articles:
                         priority_results[priority_level] = (articles, source_info)
                         logger.info("Priority %d returned %d articles", priority_level, len(articles))
@@ -1990,7 +1971,7 @@ def get_articles(domain: str, topic: Optional[str] = None,
                 except Exception as e:
                     logger.warning("Priority %d fetch error: %s", pl, str(e))
         except FuturesTimeoutError:
-            logger.warning("Parallel priority fetch timeout (10s), got %d of %d priorities", 
+            logger.warning("Parallel priority fetch timeout (8s), got %d of %d priorities", 
                           len(priority_results), len(priority_levels))
     
     logger.info("Collected results from priorities: %s", list(priority_results.keys()))
