@@ -809,7 +809,7 @@ def parse_rss_feed(content: bytes, domain: str) -> List[Dict]:
             # Compose article dict and append
             article = {
                 'title': title,
-                'link': link,
+                'url': link,  # Fixed: was 'link', but filter_articles expects 'url'
                 'published_at': published_at,
                 'summary': summary,
                 'author': author
@@ -2299,7 +2299,7 @@ def handle_request(request: Dict) -> Optional[Dict]:
                 "tools": [
                     {
                         "name": "get_articles",
-                        "description": "Retrieve RECENT articles from a domain (max 15 days old). Uses 4-layer fallback (Official RSS → RSSHub → Google News → Scraper). Returns newest first in reverse chronological order. Default: 10 articles from last 15 days.",
+                        "description": "Retrieve RECENT articles from a domain (max 15 days old). Uses 4-layer fallback (Official RSS → RSSHub → Google News → Scraper). Returns newest first in reverse chronological order. Default: 8 articles from last 15 days.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -2324,10 +2324,10 @@ def handle_request(request: Dict) -> Optional[Dict]:
                                 },
                                 "count": {
                                     "type": "integer",
-                                    "description": "Number of articles to return (default: 10 when user says 'recent/top/latest' without number)",
+                                    "description": "Number of articles to return (default: 8 when user says 'recent/top/latest' without number)",
                                     "minimum": 1,
                                     "maximum": 50,
-                                    "default": 10
+                                    "default": 8
                                 },
                                 "fast_mode": {
                                     "type": "boolean",
@@ -2364,8 +2364,8 @@ def handle_request(request: Dict) -> Optional[Dict]:
                             "properties": {
                                 "count": {
                                     "type": "integer",
-                                    "description": "Number of articles to return (default: 10, max: 50)",
-                                    "default": 10,
+                                    "description": "Number of articles to return (default: 8, max: 50)",
+                                    "default": 8,
                                     "minimum": 1,
                                     "maximum": 50
                                 },
