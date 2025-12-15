@@ -283,7 +283,7 @@ def fetch_from_priority_domains(topic_keywords, location=None, limit=8, days=10)
     priority_domains = [
         site['domain'] for site in main_config
         if site.get('priority', 999) <= 6
-    ][:12]  # increased limit slightly for better coverage
+    ][:20]  # increased limit slightly for better coverage
     
     result = fetch_from_domains_parallel(priority_domains, topic_keywords, location, limit * 3, days=days)
     result = result[:limit]

@@ -2144,7 +2144,7 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
     
     # For top news, only fetch from top priority sites (faster response)
     # Filter sites by priority field (lower number = higher priority)
-    TOP_NEWS_SITE_LIMIT = 12  # Fetch from top 12 sites (still responds in 5-6 seconds)
+    TOP_NEWS_SITE_LIMIT = 15  # Fetch from top 15 sites (still responds fairly quickly)
     
     # FIXED: Only include sites with numeric priority 1-12, exclude null priority sites
     priority_sites = [
@@ -2160,7 +2160,7 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
     logger.info(f"Fetching top news from {len(sites_to_fetch)} priority sites")
     
     # Parallel domain fetching for top news - use more workers for faster response
-    max_workers = min(12, len(sites_to_fetch))  # Fetch all 12 sites in parallel
+    max_workers = min(15, len(sites_to_fetch))  # Fetch all 15 sites in parallel
     
     def fetch_domain(site_config):
         domain = site_config.get('domain')
