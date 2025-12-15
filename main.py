@@ -1841,9 +1841,33 @@ def get_articles(domain: str, topic: Optional[str] = None,
     if days_error:
         logger.warning("Invalid lastNDays: %s", days_error)
     
-    # Sanitize filter inputs
+    # Sanitize filter inputs with Aliasing
     topic_clean = sanitize_for_filter(topic) if topic else None
+    
+    # Topic Aliases
+    if topic_clean:
+        aliases = {
+            'technology': 'tech',
+            'artificial intelligence': 'ai',
+            'genai': 'ai'
+        }
+        if topic_clean in aliases:
+            topic_clean = aliases[topic_clean]
+            
     location_clean = sanitize_for_filter(location) if location else None
+    
+    # Smart Location Filtering:
+    # If requesting "India" news from a known Indian domain, DISABLE location filtering
+    if location_clean and location_clean.lower() in ['india', 'in']:
+        indian_domains = [
+            'ndtv.com', 'indianexpress.com', 'timesofindia.indiatimes.com',
+            'hindustantimes.com', 'gadgets360.com', 'economictimes.indiatimes.com',
+            'analyticsindiamag.com', 'indiatechnologynews.in', 'devshorts.in',
+            'analyticsvidhya.com', 'livemint.com', 'moneycontrol.com', 'thehindu.com'
+        ]
+        if any(d in domain.lower() for d in indian_domains) or domain.lower().endswith('.in'):
+            logger.info(f"Disabling explicit location filter 'India' for Indian domain: {domain}")
+            location_clean = None
     
     # Check rate limit
     if not rate_limiter.is_allowed(domain):

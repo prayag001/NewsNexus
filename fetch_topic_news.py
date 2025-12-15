@@ -36,10 +36,29 @@ def fetch_from_domains_parallel(domains, topic_keywords, location, limit_per_dom
     all_articles = []
     
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_domain = {
-            executor.submit(get_articles, domain, location=location, lastNDays=days, count=limit_per_domain): domain
-            for domain in domains
-        }
+        future_to_domain = {}
+        for domain in domains:
+            # Smart Location Filtering:
+            # If requesting "India" news from a known Indian domain, DISABLE location filtering
+            # This prevents finding 0 articles because "India" isn't explicitly mentioned in every title
+            effective_location = location
+            if location and location.lower() in ['india', 'in']:
+                indian_domains = [
+                    'ndtv.com', 'indianexpress.com', 'timesofindia.indiatimes.com',
+                    'hindustantimes.com', 'gadgets360.com', 'economictimes.indiatimes.com',
+                    'analyticsindiamag.com', 'indiatechnologynews.in', 'devshorts.in',
+                    'analyticsvidhya.com', 'livemint.com', 'moneycontrol.com'
+                ]
+                if any(d in domain for d in indian_domains) or domain.endswith('.in'):
+                    effective_location = None
+            
+            future_to_domain[executor.submit(
+                get_articles, 
+                domain, 
+                location=effective_location, 
+                lastNDays=days, 
+                count=limit_per_domain
+            )] = domain
         
         for future in as_completed(future_to_domain):
             domain = future_to_domain[future]
@@ -292,6 +311,15 @@ def fetch_from_nonpriority_fallback(topic_keywords, location=None, limit=8, days
 def fetch_topic_news(topic, location=None, limit=8, days=10, domain=None):
     """Main function to fetch news for any topic."""
     topic_lower = topic.lower().strip()
+    
+    # Topic Aliases
+    aliases = {
+        'technology': 'tech',
+        'artificial intelligence': 'ai',
+        'genai': 'ai'
+    }
+    if topic_lower in aliases:
+        topic_lower = aliases[topic_lower]
     
     keywords = None
     if topic_lower != 'general':
