@@ -2208,22 +2208,25 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
     # Take top N articles
     top_articles = all_articles[:count]
     
-    # Remove internal field
+    # Transform to user-friendly format with clean field names
+    clean_articles = []
     for article in top_articles:
-        article.pop('_fetch_source', None)
+        clean_articles.append({
+            "heading": article.get('title', ''),
+            "summary": article.get('summary', ''),
+            "date": article.get('published_at', ''),
+            "source_link": article.get('url', '')
+        })
     
     duration_ms = (time.time() - start_time) * 1000
     metrics.record_duration('get_top_news_duration_ms', duration_ms)
     
-    if top_articles:
+    if clean_articles:
         metrics.increment('get_top_news_success')
     
     return {
-        "articles": top_articles,
-        "totalFetched": len(all_articles),
-        "sourcesQueried": len(sources_used),
-        "sources": sources_used,
-        "errors": errors if errors else None,
+        "articles": clean_articles,
+        "total": len(clean_articles),
         "durationMs": round(duration_ms, 2)
     }
 
