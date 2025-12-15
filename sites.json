@@ -190,13 +190,7 @@
     "sources": [
       {
         "type": "official_rss",
-        "url": "https://www.gadgets360.com/rss/feeds",
-        "priority": 1,
-        "timeout_ms": 2000
-      },
-      {
-        "type": "official_rss",
-        "url": "https://www.gadgets360.com/rss/news",
+        "url": "https://feeds.feedburner.com/gadgets360-latest",
         "priority": 1,
         "timeout_ms": 2000
       },
