@@ -27,6 +27,7 @@ from collections import defaultdict
 from functools import lru_cache
 from collections import OrderedDict
 import threading
+import random
 
 # Fix Windows console encoding for Unicode output
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
@@ -2116,7 +2117,7 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
     
     # For top news, only fetch from top priority sites (faster response)
     # Filter sites by priority field (lower number = higher priority)
-    TOP_NEWS_SITE_LIMIT = 12  # Only fetch from top 12 sites
+    TOP_NEWS_SITE_LIMIT = 12  # Fetch from top 12 sites (still responds in 5-6 seconds)
     
     # FIXED: Only include sites with numeric priority 1-12, exclude null priority sites
     priority_sites = [
@@ -2131,8 +2132,8 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
     
     logger.info(f"Fetching top news from {len(sites_to_fetch)} priority sites")
     
-    # Parallel domain fetching for top news - use fewer workers for faster response
-    max_workers = min(4, len(sites_to_fetch))  # Reduced from 8 to 4 for faster response
+    # Parallel domain fetching for top news - use more workers for faster response
+    max_workers = min(12, len(sites_to_fetch))  # Fetch all 12 sites in parallel
     
     def fetch_domain(site_config):
         domain = site_config.get('domain')
@@ -2179,11 +2180,11 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
         futures = {executor.submit(fetch_domain, site_config): site_config 
                    for site_config in sites_to_fetch}
         
-        # Process futures as they complete with 15-second overall timeout for all domains
+        # Process futures as they complete with 10-second overall timeout for all domains
         try:
-            for future in as_completed(futures, timeout=15):
+            for future in as_completed(futures, timeout=10):
                 try:
-                    result = future.result(timeout=5)  # 5-second max per domain
+                    result = future.result(timeout=3)  # 3-second max per domain
                     if result:
                         if 'articles' in result and result['articles']:
                             all_articles.extend(result['articles'])
@@ -2196,22 +2197,13 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
                     logger.error("Error fetching from domain %s: %s", domain, str(e))
                     errors.append({'domain': domain, 'error': str(e)})
         except FuturesTimeoutError:
-            logger.warning("get_top_news overall timeout (15s) reached, returning partial results")
+            logger.warning("get_top_news overall timeout (10s) reached, returning partial results")
             # Cancel remaining futures
             for future in futures:
                 future.cancel()
     
-    # Sort all articles by published date (newest first)
-    def get_sort_key(article):
-        pub_date = article.get('published_at', '')
-        if pub_date:
-            try:
-                return parse_date(pub_date) or datetime.min.replace(tzinfo=timezone.utc)
-            except:
-                return datetime.min.replace(tzinfo=timezone.utc)
-        return datetime.min.replace(tzinfo=timezone.utc)
-    
-    all_articles.sort(key=get_sort_key, reverse=True)
+    # Randomly shuffle articles to get diverse sources
+    random.shuffle(all_articles)
     
     # Take top N articles
     top_articles = all_articles[:count]

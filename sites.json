@@ -314,6 +314,7 @@
   {
     "name": "Wired",
     "domain": "wired.com",
+    "priority": 7,
     "sources": [
       {
         "type": "official_rss",
@@ -338,6 +339,7 @@
   {
     "name": "The Verge",
     "domain": "theverge.com",
+    "priority": 8,
     "sources": [
       {
         "type": "official_rss",
@@ -604,6 +606,7 @@
   {
     "name": "VentureBeat",
     "domain": "venturebeat.com",
+    "priority": 9,
     "sources": [
       {
         "type": "official_rss",
@@ -1018,6 +1021,7 @@
   {
     "name": "BBC News World",
     "domain": "bbc.co.uk",
+    "priority": 10,
     "sources": [
       {
         "type": "official_rss",
@@ -1054,6 +1058,7 @@
   {
     "name": "The Guardian World",
     "domain": "theguardian.com",
+    "priority": 11,
     "sources": [
       {
         "type": "official_rss",
@@ -1192,6 +1197,7 @@
   {
     "name": "TechCrunch",
     "domain": "techcrunch.com",
+    "priority": 12,
     "sources": [
       {
         "type": "official_rss",
