@@ -2173,7 +2173,7 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
                 topic=topic,
                 location=location,
                 lastNDays=lastNDays,
-                fast_mode=True  # Skip to Google News RSS for speed
+                fast_mode=False  # Use official RSS first (priority 1), not Google News
             )
             
             if result.get('articles'):
@@ -2232,7 +2232,8 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
     # Randomly shuffle articles to get diverse sources
     random.shuffle(all_articles)
     
-    # Take top N articles
+    # Take top N articles - STRICT ENFORCEMENT
+    logger.info(f"get_top_news: Collected {len(all_articles)} articles, limiting to {count}")
     top_articles = all_articles[:count]
     
     # Transform to user-friendly format with clean field names
@@ -2250,6 +2251,9 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
             "date": article.get('published_at', ''),
             "source_link": article.get('url', '')
         })
+    
+    # STRICT: Ensure we never return more than requested count
+    clean_articles = clean_articles[:count]
     
     duration_ms = (time.time() - start_time) * 1000
     metrics.record_duration('get_top_news_duration_ms', duration_ms)
