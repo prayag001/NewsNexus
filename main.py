@@ -1702,7 +1702,8 @@ def filter_articles(articles: List[Dict], topic: Optional[str],
             if not re.search(r'\b' + re.escape(location_lower) + r'\b', text):
                 continue
         
-        # Date filter
+        # Date filter - FIXED: Use calendar date comparison, not hour-based
+        # lastNDays=1 means "today only", lastNDays=2 means "today and yesterday", etc.
         if last_n_days and art.get('published_at'):
             try:
                 pub_str = art['published_at']
@@ -1711,8 +1712,13 @@ def filter_articles(articles: List[Dict], topic: Optional[str],
                     if pub_date.tzinfo is None:
                         pub_date = pub_date.replace(tzinfo=timezone.utc)
                     
-                    age_days = (now - pub_date).days
-                    if age_days > last_n_days:
+                    # Calculate cutoff date: today minus (last_n_days - 1) days at midnight
+                    # e.g., lastNDays=1 means only today, so cutoff is today at 00:00
+                    cutoff_date = (now - timedelta(days=last_n_days - 1)).replace(
+                        hour=0, minute=0, second=0, microsecond=0
+                    )
+                    
+                    if pub_date < cutoff_date:
                         continue
             except (ValueError, TypeError):
                 pass
