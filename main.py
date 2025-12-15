@@ -17,6 +17,7 @@ import io
 import json
 import logging
 import re
+import html
 import hashlib
 import time
 from datetime import datetime, timezone, timedelta
@@ -2209,11 +2210,17 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
     top_articles = all_articles[:count]
     
     # Transform to user-friendly format with clean field names
+    # Also decode HTML entities for cleaner output
     clean_articles = []
     for article in top_articles:
+        heading = html.unescape(article.get('title', ''))
+        summary = html.unescape(article.get('summary', ''))
+        # Remove HTML tags from summary if any
+        summary = re.sub(r'<[^>]+>', '', summary)
+        
         clean_articles.append({
-            "heading": article.get('title', ''),
-            "summary": article.get('summary', ''),
+            "heading": heading,
+            "summary": summary,
             "date": article.get('published_at', ''),
             "source_link": article.get('url', '')
         })
