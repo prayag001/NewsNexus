@@ -31,7 +31,7 @@ def log(*args, **kwargs):
     if not QUIET_MODE:
         print(*args, **kwargs)
 
-def fetch_from_domains_parallel(domains, topic_keywords, location, limit_per_domain, days=10, max_workers=8):
+def fetch_from_domains_parallel(domains, topic_keywords, location, limit_per_domain, days=10, max_workers=8, topic=None):
     """Helper to fetch from multiple domains in parallel."""
     all_articles = []
     
@@ -56,6 +56,7 @@ def fetch_from_domains_parallel(domains, topic_keywords, location, limit_per_dom
             future_to_domain[executor.submit(
                 get_articles, 
                 domain, 
+                topic=topic,  # FIXED: Pass topic to get_articles for better filtering
                 location=effective_location, 
                 lastNDays=days, 
                 count=limit_per_domain
@@ -276,7 +277,7 @@ def is_topic_related(article, topic_keywords):
     
     return False
 
-def fetch_from_priority_domains(topic_keywords, location=None, limit=8, days=10):
+def fetch_from_priority_domains(topic_keywords, location=None, limit=8, days=10, topic=None):
     """Fetch from priority domains using parallel fetcher."""
     log(f"Fetching from priority domains (parallel, last {days} days)...")
     
@@ -286,14 +287,14 @@ def fetch_from_priority_domains(topic_keywords, location=None, limit=8, days=10)
         if site.get('priority', 999) <= 6
     ][:20]  # increased limit slightly for better coverage
     
-    result = fetch_from_domains_parallel(priority_domains, topic_keywords, location, limit * 3, days=days)
+    result = fetch_from_domains_parallel(priority_domains, topic_keywords, location, limit * 3, days=days, topic=topic)
     result = result[:limit]
     
     log(f"Got {len(result)} relevant articles from priority domains")
     
     return result
 
-def fetch_from_nonpriority_fallback(topic_keywords, location=None, limit=8, days=10):
+def fetch_from_nonpriority_fallback(topic_keywords, location=None, limit=8, days=10, topic=None):
     """Fallback to non-priority domains using parallel fetcher."""
     log(f"Priority domains insufficient, fetching from fallback sources (parallel, last {days} days)...")
     
@@ -303,7 +304,7 @@ def fetch_from_nonpriority_fallback(topic_keywords, location=None, limit=8, days
         if site.get('priority', 999) > 6
     ][:12]
     
-    result = fetch_from_domains_parallel(nonpriority_domains, topic_keywords, location, limit * 3, days=days)
+    result = fetch_from_domains_parallel(nonpriority_domains, topic_keywords, location, limit * 3, days=days, topic=topic)
     result = result[:limit]
     
     log(f"Got {len(result)} relevant articles from fallback sources")
@@ -350,12 +351,12 @@ def fetch_topic_news(topic, location=None, limit=8, days=10, domain=None):
         return []
     
     # Try priority domains first
-    articles = fetch_from_priority_domains(keywords, location, limit, days)
+    articles = fetch_from_priority_domains(keywords, location, limit, days, topic=topic_lower)
     
     # If we don't have enough, use fallback
     if len(articles) < limit:
         remaining_needed = limit - len(articles)
-        fallback_articles = fetch_from_nonpriority_fallback(keywords, location, remaining_needed, days)
+        fallback_articles = fetch_from_nonpriority_fallback(keywords, location, remaining_needed, days, topic=topic_lower)
         articles.extend(fallback_articles)
     
     # STRICT: Triple-check limit enforcement
