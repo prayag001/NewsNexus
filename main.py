@@ -2213,11 +2213,11 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
         futures = {executor.submit(fetch_domain, site_config): site_config 
                    for site_config in sites_to_fetch}
         
-        # Process futures as they complete with 10-second overall timeout for all domains
+        # Process futures as they complete with 15-second overall timeout for all domains
         try:
-            for future in as_completed(futures, timeout=10):
+            for future in as_completed(futures, timeout=15):  # Increased from 10s to 15s
                 try:
-                    result = future.result(timeout=3)  # 3-second max per domain
+                    result = future.result(timeout=5)  # Increased from 3s to 5s per domain
                     if result:
                         if 'articles' in result and result['articles']:
                             all_articles.extend(result['articles'])
@@ -2230,17 +2230,30 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
                     logger.error("Error fetching from domain %s: %s", domain, str(e))
                     errors.append({'domain': domain, 'error': str(e)})
         except FuturesTimeoutError:
-            logger.warning("get_top_news overall timeout (10s) reached, returning partial results")
+            logger.warning("get_top_news overall timeout (15s) reached, returning partial results")
             # Cancel remaining futures
             for future in futures:
                 future.cancel()
     
-    # Randomly shuffle articles to get diverse sources
-    random.shuffle(all_articles)
+    # Deduplicate by URL (same article might come from multiple sources)
+    seen_urls = set()
+    unique_articles = []
+    for article in all_articles:
+        url = article.get('url', '').lower().rstrip('/')
+        if url and url not in seen_urls:
+            seen_urls.add(url)
+            unique_articles.append(article)
+    
+    logger.info(f"get_top_news: Collected {len(all_articles)} articles, deduplicated to {len(unique_articles)}")
+    
+    # Sort by date (newest first) for consistent ordering
+    unique_articles.sort(
+        key=lambda x: x.get('published_at') or '1970-01-01',
+        reverse=True
+    )
     
     # Take top N articles - STRICT ENFORCEMENT
-    logger.info(f"get_top_news: Collected {len(all_articles)} articles, limiting to {count}")
-    top_articles = all_articles[:count]
+    top_articles = unique_articles[:count]
     
     # Transform to user-friendly format with clean field names
     # Also decode HTML entities for cleaner output
