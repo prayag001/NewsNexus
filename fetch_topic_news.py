@@ -83,7 +83,8 @@ def fetch_from_domains_parallel(domains, topic_keywords, location, limit_per_dom
         reverse=True
     )
     
-    return filtered
+    # STRICT: Limit to requested count to avoid over-fetching
+    return filtered[:limit_per_domain]
 
 # Topic keyword mappings - comprehensive list for daily news filtering
 TOPIC_KEYWORDS = {
@@ -357,7 +358,10 @@ def fetch_topic_news(topic, location=None, limit=8, days=10, domain=None):
         fallback_articles = fetch_from_nonpriority_fallback(keywords, location, remaining_needed, days)
         articles.extend(fallback_articles)
     
-    return articles[:limit]
+    # STRICT: Triple-check limit enforcement
+    final_articles = articles[:limit]
+    log(f"Returning {len(final_articles)} articles (limit was {limit})")
+    return final_articles
 
 def main():
     parser = argparse.ArgumentParser(
