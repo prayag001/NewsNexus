@@ -53,3 +53,15 @@ verify_*.py
 # Reports (optional - remove ! to ignore them)
 # PERFORMANCE_REPORT.md
 # PROJECT_EVALUATION_REPORT.md
+
+# Output JSON files (generated, keep local)
+latest_news.json
+*_news_*.json
+mcp_news_*.json
+news_results_*.json
+
+# Local reference docs
+MCP_BLOCKING_EXPLAINED.md
+
+# Client scripts (keep local for testing)
+tech_news_client.py

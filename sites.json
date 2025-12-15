@@ -314,7 +314,6 @@
   {
     "name": "Wired",
     "domain": "wired.com",
-    "priority": 7,
     "sources": [
       {
         "type": "official_rss",
@@ -339,7 +338,6 @@
   {
     "name": "The Verge",
     "domain": "theverge.com",
-    "priority": 8,
     "sources": [
       {
         "type": "official_rss",
@@ -606,25 +604,20 @@
   {
     "name": "VentureBeat",
     "domain": "venturebeat.com",
-    "priority": 9,
     "sources": [
       {
         "type": "official_rss",
         "url": "https://venturebeat.com/feed",
         "priority": 1,
-        "timeout_ms": 2000
-      },
-      {
-        "type": "official_rss",
-        "url": "https://venturebeat.com/category/ai/feed",
-        "priority": 1,
-        "timeout_ms": 2000
+        "timeout_ms": 2000,
+        "note": "Main feed with 7 recent articles"
       },
       {
         "type": "google_news",
         "url": "https://news.google.com/rss/search?q=site:venturebeat.com&hl=en-US&gl=US&ceid=US:en",
         "priority": 2,
-        "timeout_ms": 2000
+        "timeout_ms": 2000,
+        "note": "Google News provides 25+ additional articles"
       },
       {
         "type": "scraper",
@@ -1021,7 +1014,6 @@
   {
     "name": "BBC News World",
     "domain": "bbc.co.uk",
-    "priority": 10,
     "sources": [
       {
         "type": "official_rss",
@@ -1058,7 +1050,6 @@
   {
     "name": "The Guardian World",
     "domain": "theguardian.com",
-    "priority": 11,
     "sources": [
       {
         "type": "official_rss",
@@ -1197,7 +1188,6 @@
   {
     "name": "TechCrunch",
     "domain": "techcrunch.com",
-    "priority": 12,
     "sources": [
       {
         "type": "official_rss",
