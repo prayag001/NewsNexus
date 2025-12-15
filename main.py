@@ -1857,13 +1857,15 @@ def get_articles(domain: str, topic: Optional[str] = None,
     location_clean = sanitize_for_filter(location) if location else None
     
     # Smart Location Filtering:
-    # If requesting "India" news from a known Indian domain, DISABLE location filtering
+    # If requesting "India" news from a known Indian domain, DISABLE location filtering for ANY topic
+    # This prevents finding 0 articles because "India" isn't explicitly mentioned in every title
     if location_clean and location_clean.lower() in ['india', 'in']:
         indian_domains = [
             'ndtv.com', 'indianexpress.com', 'timesofindia.indiatimes.com',
             'hindustantimes.com', 'gadgets360.com', 'economictimes.indiatimes.com',
             'analyticsindiamag.com', 'indiatechnologynews.in', 'devshorts.in',
-            'analyticsvidhya.com', 'livemint.com', 'moneycontrol.com', 'thehindu.com'
+            'analyticsvidhya.com', 'livemint.com', 'moneycontrol.com', 'thehindu.com',
+            'business-standard.com', 'financialexpress.com', 'deccanherald.com'
         ]
         if any(d in domain.lower() for d in indian_domains) or domain.lower().endswith('.in'):
             logger.info(f"Disabling explicit location filter 'India' for Indian domain: {domain}")

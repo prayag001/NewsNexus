@@ -47,7 +47,8 @@ def fetch_from_domains_parallel(domains, topic_keywords, location, limit_per_dom
                     'ndtv.com', 'indianexpress.com', 'timesofindia.indiatimes.com',
                     'hindustantimes.com', 'gadgets360.com', 'economictimes.indiatimes.com',
                     'analyticsindiamag.com', 'indiatechnologynews.in', 'devshorts.in',
-                    'analyticsvidhya.com', 'livemint.com', 'moneycontrol.com'
+                    'analyticsvidhya.com', 'livemint.com', 'moneycontrol.com', 'thehindu.com',
+                    'business-standard.com', 'financialexpress.com', 'deccanherald.com'
                 ]
                 if any(d in domain for d in indian_domains) or domain.endswith('.in'):
                     effective_location = None
@@ -281,7 +282,7 @@ def fetch_from_priority_domains(topic_keywords, location=None, limit=8, days=10)
     # Use loaded config
     priority_domains = [
         site['domain'] for site in main_config
-        if site.get('priority', 999) <= 3
+        if site.get('priority', 999) <= 6
     ][:12]  # increased limit slightly for better coverage
     
     result = fetch_from_domains_parallel(priority_domains, topic_keywords, location, limit * 3, days=days)
@@ -298,7 +299,7 @@ def fetch_from_nonpriority_fallback(topic_keywords, location=None, limit=8, days
     # Use loaded config
     nonpriority_domains = [
         site['domain'] for site in main_config
-        if site.get('priority', 999) > 3
+        if site.get('priority', 999) > 6
     ][:12]
     
     result = fetch_from_domains_parallel(nonpriority_domains, topic_keywords, location, limit * 3, days=days)
