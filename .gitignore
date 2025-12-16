@@ -65,3 +65,9 @@ MCP_BLOCKING_EXPLAINED.md
 
 # Client scripts (keep local for testing)
 tech_news_client.py
+
+# Test/validation scripts (local development)
+test_*.py
+test_*.json
+latest_result.json
+output.json

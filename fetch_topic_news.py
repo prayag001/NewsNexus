@@ -59,7 +59,8 @@ def fetch_from_domains_parallel(domains, topic_keywords, location, limit_per_dom
                 topic=topic,  # FIXED: Pass topic to get_articles for better filtering
                 location=effective_location, 
                 lastNDays=days, 
-                count=limit_per_domain
+                count=limit_per_domain,
+                fast_mode=True  # OPTIMIZATION: Use fast mode for quicker fetching
             )] = domain
         
         for future in as_completed(future_to_domain):
@@ -84,8 +85,9 @@ def fetch_from_domains_parallel(domains, topic_keywords, location, limit_per_dom
         reverse=True
     )
     
-    # STRICT: Limit to requested count to avoid over-fetching
-    return filtered[:limit_per_domain]
+    # Return ALL filtered articles - let caller handle the final limit
+    # This ensures progressive date expansion can properly aggregate articles
+    return filtered
 
 # Topic keyword mappings - comprehensive list for daily news filtering
 TOPIC_KEYWORDS = {
@@ -278,25 +280,57 @@ def is_topic_related(article, topic_keywords):
     return False
 
 def fetch_from_priority_domains(topic_keywords, location=None, limit=8, days=10, topic=None):
-    """Fetch from priority domains using parallel fetcher."""
-    log(f"Fetching from priority domains (parallel, last {days} days)...")
+    """Fetch from priority domains using progressive date expansion.
     
-    # Use loaded config
+    Strategy: Try recent days first (1-2 days), then expand if needed.
+    This ensures 'latest' truly means latest, not 5-10 day old articles.
+    """
+    # Use loaded config - OPTIMIZED: Fetch from top 8 priority domains only
     priority_domains = [
         site['domain'] for site in main_config
         if site.get('priority', 999) <= 6
-    ][:20]  # increased limit slightly for better coverage
+    ][:8]  # FAST: Limit to 8 domains for quick response
     
-    result = fetch_from_domains_parallel(priority_domains, topic_keywords, location, limit * 3, days=days, topic=topic)
+    # Progressive date expansion: try recent first, expand only if needed
+    date_ranges = [2, 5, days]  # Try 2 days, then 5 days, then full range
+    result = []
+    
+    for day_range in date_ranges:
+        if len(result) >= limit:
+            break
+        
+        log(f"Trying priority domains with {day_range}-day range...")
+        fetched = fetch_from_domains_parallel(
+            priority_domains, topic_keywords, location, 
+            limit * 2, days=day_range, topic=topic  # OPTIMIZED: limit*2 instead of limit*3
+        )
+        
+        # Merge new articles (avoid duplicates by URL)
+        existing_urls = {a.get('url') for a in result}
+        for article in fetched:
+            if article.get('url') not in existing_urls:
+                result.append(article)
+                existing_urls.add(article.get('url'))
+        
+        log(f"  -> {len(result)} unique articles so far")
+        
+        if len(result) >= limit:
+            break
+    
+    # Sort by date (newest first) and limit
+    result.sort(
+        key=lambda x: x.get('published_at') or '1970-01-01',
+        reverse=True
+    )
     result = result[:limit]
     
-    log(f"Got {len(result)} relevant articles from priority domains")
+    log(f"Got {len(result)} relevant articles from priority domains (newest first)")
     
     return result
 
 def fetch_from_nonpriority_fallback(topic_keywords, location=None, limit=8, days=10, topic=None):
-    """Fallback to non-priority domains using parallel fetcher."""
-    log(f"Priority domains insufficient, fetching from fallback sources (parallel, last {days} days)...")
+    """Fallback to non-priority domains using progressive date expansion."""
+    log(f"Priority domains insufficient, fetching from fallback sources...")
     
     # Use loaded config
     nonpriority_domains = [
@@ -304,10 +338,37 @@ def fetch_from_nonpriority_fallback(topic_keywords, location=None, limit=8, days
         if site.get('priority', 999) > 6
     ][:12]
     
-    result = fetch_from_domains_parallel(nonpriority_domains, topic_keywords, location, limit * 3, days=days, topic=topic)
+    # Progressive date expansion for fallback too
+    date_ranges = [2, 5, days]
+    result = []
+    
+    for day_range in date_ranges:
+        if len(result) >= limit:
+            break
+        
+        log(f"Trying fallback sources with {day_range}-day range...")
+        fetched = fetch_from_domains_parallel(
+            nonpriority_domains, topic_keywords, location, 
+            limit * 3, days=day_range, topic=topic
+        )
+        
+        existing_urls = {a.get('url') for a in result}
+        for article in fetched:
+            if article.get('url') not in existing_urls:
+                result.append(article)
+                existing_urls.add(article.get('url'))
+        
+        if len(result) >= limit:
+            break
+    
+    # Sort by date (newest first) and limit
+    result.sort(
+        key=lambda x: x.get('published_at') or '1970-01-01',
+        reverse=True
+    )
     result = result[:limit]
     
-    log(f"Got {len(result)} relevant articles from fallback sources")
+    log(f"Got {len(result)} relevant articles from fallback sources (newest first)")
     
     return result
 
