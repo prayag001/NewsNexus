@@ -359,7 +359,199 @@ User: "Get top 10 news"
 pip install -r requirements.txt
 ```
 
-### MCP Server Setup (For AI Assistants)
+---
+
+## 🌐 Transport Modes: STDIO vs HTTP vs SSE
+
+NewsNexus supports **3 transport modes** for different use cases:
+
+| Mode | URL/Command | Best For | Runs As |
+|------|-------------|----------|---------|
+| **STDIO** | `python main.py` | Local MCP clients (Claude Desktop local) | Subprocess |
+| **HTTP** | `http://localhost:8000/mcp` | External apps, N8N, APIs | Background server |
+| **SSE** | `http://localhost:8000/sse` | Real-time streaming clients | Background server |
+
+### 📌 Key Differences
+
+| Feature | STDIO | HTTP | SSE |
+|---------|-------|------|-----|
+| **How it works** | Reads JSON from stdin, writes to stdout | POST JSON, get JSON response | Long-lived connection, server pushes events |
+| **Connection** | Subprocess per session | Stateless requests | Persistent connection |
+| **Server lifecycle** | Started by MCP client | Must be running before use | Must be running before use |
+| **Use case** | Local AI assistants | External apps, webhooks, automation | Real-time updates |
+
+### ⚠️ Important: HTTP/SSE Requires Running Server
+
+When using HTTP or SSE:
+1. You must **start the HTTP server first**: `python http_server.py`
+2. The server runs on port 8000 by default
+3. Keep the server running while external apps make requests
+
+For STDIO (default), the MCP client starts/stops the server automatically.
+
+---
+
+## 🔌 Integration Guides
+
+### Claude Desktop Integration
+
+**Option 1: STDIO (Recommended for local use)**
+
+Add to `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "news-nexus": {
+      "command": "python",
+      "args": ["C:\\path\\to\\NewsNexus\\main.py"]
+    }
+  }
+}
+```
+Claude starts the server automatically. No manual server management needed.
+
+**Option 2: HTTP (For remote/shared access)**
+
+1. Start the HTTP server (keep it running):
+   ```bash
+   python http_server.py --port 8000
+   ```
+
+2. Configure Claude Desktop to use HTTP endpoint:
+   ```json
+   {
+     "mcpServers": {
+       "news-nexus": {
+         "url": "http://localhost:8000/sse"
+       }
+     }
+   }
+   ```
+
+---
+
+### N8N Integration (HTTP)
+
+N8N uses HTTP requests, so you need the HTTP server running.
+
+**Step 1: Start the HTTP Server**
+```bash
+cd C:\path\to\NewsNexus
+python http_server.py
+# Server runs on http://localhost:8000
+```
+
+**Step 2: Use HTTP Request Node in N8N**
+
+| Setting | Value |
+|---------|-------|
+| Method | POST |
+| URL | `http://localhost:8000/mcp` |
+| Content-Type | `application/json` |
+
+**Example: Get Top AI News**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "get_top_news",
+    "arguments": {
+      "count": 10,
+      "topic": "ai"
+    }
+  }
+}
+```
+
+**Example: Get Articles from TechCrunch**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "get_articles",
+    "arguments": {
+      "domain": "techcrunch.com",
+      "topic": "AI",
+      "count": 5
+    }
+  }
+}
+```
+
+**Simpler REST API (No MCP JSON-RPC needed)**
+
+N8N can also use the simpler REST endpoints:
+
+| Endpoint | Method | Example |
+|----------|--------|---------|
+| `/api/articles` | GET | `http://localhost:8000/api/articles?domain=techcrunch.com&count=5&topic=ai` |
+| `/api/top-news` | GET | `http://localhost:8000/api/top-news?count=10&topic=ai&location=india` |
+| `/api/health` | GET | `http://localhost:8000/api/health` |
+
+---
+
+### cURL Examples (HTTP)
+
+```bash
+# Start server first
+python http_server.py
+
+# List available tools
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+
+# Get top 10 AI news
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"get_top_news","arguments":{"count":10,"topic":"ai"}}}'
+
+# Simple REST API
+curl "http://localhost:8000/api/top-news?count=10&topic=ai"
+curl "http://localhost:8000/api/articles?domain=techcrunch.com&count=5"
+```
+
+---
+
+### Running HTTP Server as Background Service (Windows)
+
+For production use, run the HTTP server as a background service:
+
+```powershell
+# Start as background job
+Start-Job -ScriptBlock { python C:\path\to\NewsNexus\http_server.py }
+
+# Or use nssm to create a Windows service
+nssm install NewsNexus python http_server.py
+nssm start NewsNexus
+```
+
+---
+
+## ✅ HTTP API Covers All Features
+
+The HTTP wrapper provides **full access to all NewsNexus functionality**:
+
+| Feature | MCP Tool | HTTP REST API |
+|---------|----------|---------------|
+| Top/Recent/Latest news | `get_top_news` | `GET /api/top-news` |
+| Articles from domain | `get_articles` | `GET /api/articles?domain=...` |
+| Filter by topic | `topic` param | `?topic=ai` |
+| Filter by location | `location` param | `?location=india` |
+| Filter by date | `lastNDays` param | `?lastNDays=7` |
+| Article count | `count` param | `?count=10` |
+| Health check | `health_check` | `GET /api/health` |
+| Metrics | `get_metrics` | `GET /api/metrics` |
+
+**All filters work the same way in HTTP as STDIO!**
+
+---
+
+### MCP Server Setup (STDIO - For AI Assistants)
 
 Add to your MCP configuration (e.g., `%APPDATA%\Code\User\globalStorage\saoudrizwan.claude-dev\settings\cline_mcp_settings.json`):
 
