@@ -133,62 +133,73 @@ Total: 8 from priority domains only ✅
 
 
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    NewsNexus v2.0 - MCP Server                           │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                           │
-│  MCP Tools:                                                              │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │ • get_articles(domain, topic?, location?, lastNDays?)            │   │
-│  │ • get_top_news(count?, topic?, location?, lastNDays?)            │   │
-│  │ • health_check()                                                 │   │
-│  │ • get_metrics()                                                  │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                           │                                              │
-│                           ▼                                              │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │              8-Layer Filtering Engine                            │   │
-│  │                                                                  │   │
-│  │  1. Days Filter (Default: 15 days, Max: 365)                    │   │
-│  │  2. Topic Filter (Keyword search in title/summary/tags)         │   │
-│  │  3. Location Filter (Keyword search)                            │   │
-│  │  4. Priority-based Site Selection (Top 6-12 sites)              │   │
-│  │  5. URL Deduplication (Normalized URLs)                         │   │
-│  │  6. Title Deduplication (Fuzzy matching)                        │   │
-│  │  7. Response Time Filtering (2s timeout per source)             │   │
-│  │  8. Article Count Limiting (Default: 10, Max: 100)              │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                           │                                              │
-│                           ▼                                              │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │         Priority-Grouped Parallel Fetching Strategy              │   │
-│  │                                                                  │   │
-│  │  Priority 1: Official RSS Feeds (Multiple per site)             │   │
-│  │  ├─ Fetch all RSS feeds in parallel (max 8 workers)             │   │
-│  │  ├─ Deduplicate by URL across all feeds                         │   │
-│  │  ├─ If ≥5 articles → SUCCESS, return results                    │   │
-│  │  └─ If <5 articles → Try Priority 2                             │   │
-│  │                                                                  │   │
-│  │  Priority 2: Google News RSS (Quality-checked)                  │   │
-│  │  ├─ Resolve redirect URLs (2s timeout)                          │   │
-│  │  ├─ Quality check: ≥50% valid URLs required                     │   │
-│  │  ├─ If ≥5 articles + valid → SUCCESS                            │   │
-│  │  └─ If <5 articles or quality fail → Try Priority 3             │   │
-│  │                                                                  │   │
-│  │  Priority 3: HTML Scraper (Deep extraction)                     │   │
-│  │  ├─ Scrape homepage for article links                           │   │
-│  │  ├─ Extract content from each article page                      │   │
-│  │  └─ Return any articles found (always fallback)                 │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                           │                                              │
-│                           ▼                                              │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  • Sort by published_at (newest first)                           │   │
-│  │  • Limit to requested count                                      │   │
-│  │  • Cache results (5 min TTL)                                     │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────────┘
+### System Flow & Architecture
+
+```mermaid
+graph TD
+    %% Clients
+    HttpClients[HTTP Clients<br/>(N8N, Postman, Web Apps)]
+    StdioClients[STDIO Clients<br/>(Claude Desktop Local, Scripts)]
+
+    %% Transport Layer
+    subgraph "Transport Layer (Interfaces)"
+        HttpServer[HTTP Server<br/>(FastAPI / http_server.py)]
+        StdioServer[STDIO Server<br/>(stdin/stdout loop / main.py)]
+    end
+
+    %% Core Logic
+    subgraph "Core Backend Logic (Shared)"
+        Dispatcher[handle_request()<br/>(The 'Brain' in main.py)]
+        
+        Tools[Tool Functions]
+        GetArticles[get_articles()]
+        GetTopNews[get_top_news()]
+        Health[health_check()]
+    end
+
+    %% Fetching Engine
+    subgraph "News Engine"
+        Fetcher[Parallel Fetcher]
+        RSS[RSS Feeds]
+        Scraper[HTML Scraper]
+        GNews[Google News]
+    end
+
+    %% The Flow - HTTP Path
+    HttpClients -->|1. HTTP POST /mcp| HttpServer
+    HttpServer -->|2. Extract JSON| Dispatcher
+
+    %% The Flow - STDIO Path
+    StdioClients -->|1. Write JSON to stdin| StdioServer
+    StdioServer -->|2. Parse JSON| Dispatcher
+
+    %% The Shared Execution Flow
+    Dispatcher -->|3. Route to Tool| Tools
+    Tools -->|4. Execute Logic| Fetcher
+    Fetcher --> RSS
+    Fetcher --> Scraper
+    Fetcher --> GNews
+
+    %% The Return Path
+    Fetcher -->|5. Raw Articles| Tools
+    Tools -->|6. JSON Result| Dispatcher
+    
+    Dispatcher -->|7a. Return Object| HttpServer
+    HttpServer -->|8a. HTTP 200 OK| HttpClients
+
+    Dispatcher -->|7b. Return Object| StdioServer
+    StdioServer -->|8b. Print to stdout| StdioClients
+
+    %% Styling
+    classDef client fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef interface fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
+    classDef core fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef engine fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+
+    class HttpClients,StdioClients client;
+    class HttpServer,StdioServer interface;
+    class Dispatcher,Tools,GetArticles,GetTopNews,Health core;
+    class Fetcher,RSS,Scraper,GNews engine;
 ```
 
 ## 📋 Fetching & Filtering Rules
