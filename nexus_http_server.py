@@ -3,9 +3,9 @@ NewsNexus HTTP Server
 An HTTP wrapper around the NewsNexus MCP server for external app integration.
 
 Usage:
-    python http_server.py                    # Run on default port 8000
-    python http_server.py --port 3000        # Run on custom port
-    uvicorn http_server:app --host 0.0.0.0   # Production with uvicorn
+    python nexus_http_server.py                    # Run on default port 8000
+    python nexus_http_server.py --port 3000        # Run on custom port
+    uvicorn nexus_http_server:app --host 0.0.0.0   # Production with uvicorn
 
 For Claude Desktop, add to config:
     {
@@ -290,7 +290,7 @@ def main():
 """)
     
     uvicorn.run(
-        "http_server:app",
+        "nexus_http_server:app",
         host=args.host,
         port=args.port,
         reload=args.reload,
