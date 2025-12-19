@@ -394,7 +394,7 @@ NewsNexus supports **3 transport modes** for different use cases:
 ### ⚠️ Important: HTTP/SSE Requires Running Server
 
 When using HTTP or SSE:
-1. You must **start the HTTP server first**: `python http_server.py`
+1. You must **start the HTTP server first**: `python nexus_http_server.py`
 2. The server runs on port 8000 by default
 3. Keep the server running while external apps make requests
 
@@ -425,7 +425,7 @@ Claude starts the server automatically. No manual server management needed.
 
 1. Start the HTTP server (keep it running):
    ```bash
-   python http_server.py --port 8000
+   python nexus_http_server.py --port 8000
    ```
 
 2. Configure Claude Desktop to use HTTP endpoint:
@@ -448,7 +448,7 @@ N8N uses HTTP requests, so you need the HTTP server running.
 **Step 1: Start the HTTP Server**
 ```bash
 cd C:\path\to\NewsNexus
-python http_server.py
+python nexus_http_server.py
 # Server runs on http://localhost:8000
 ```
 
@@ -509,7 +509,7 @@ N8N can also use the simpler REST endpoints:
 
 ```bash
 # Start server first
-python http_server.py
+python nexus_http_server.py
 
 # List available tools
 curl -X POST http://localhost:8000/mcp \
@@ -534,10 +534,10 @@ For production use, run the HTTP server as a background service:
 
 ```powershell
 # Start as background job
-Start-Job -ScriptBlock { python C:\path\to\NewsNexus\http_server.py }
+Start-Job -ScriptBlock { python C:\path\to\NewsNexus\nexus_http_server.py }
 
 # Or use nssm to create a Windows service
-nssm install NewsNexus python http_server.py
+nssm install NewsNexus python nexus_http_server.py
 nssm start NewsNexus
 ```
 
