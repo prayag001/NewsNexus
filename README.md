@@ -542,6 +542,23 @@ nssm start NewsNexus
 ```
 
 ---
+```PM2
+# Install (one-time) 
+npm install pm2 -g   
+
+# Start your servers 
+pm2 start nexus_http_server.py --name "news-nexus" 
+pm2 start other_server.py --name "search-mcp"   
+
+# Open live dashboard 
+pm2 monit   
+
+# Stop/Start anytime 
+pm2 stop news-nexus 
+pm2 start news-nexus 
+pm2 stop all
+
+---
 
 ## ✅ HTTP API Covers All Features
 

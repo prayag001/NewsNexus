@@ -308,6 +308,7 @@
   {
     "name": "Wired",
     "domain": "wired.com",
+    "priority": 7,
     "sources": [
       {
         "type": "official_rss",
@@ -332,6 +333,7 @@
   {
     "name": "The Verge",
     "domain": "theverge.com",
+    "priority": 8,
     "sources": [
       {
         "type": "official_rss",
@@ -356,6 +358,7 @@
   {
     "name": "TechRadar",
     "domain": "techradar.com",
+    "priority": 9,
     "sources": [
       {
         "type": "official_rss",
@@ -598,6 +601,7 @@
   {
     "name": "VentureBeat",
     "domain": "venturebeat.com",
+    "priority": 10,
     "sources": [
       {
         "type": "official_rss",
@@ -648,6 +652,7 @@
   {
     "name": "CNET",
     "domain": "cnet.com",
+    "priority": 12,
     "sources": [
       {
         "type": "official_rss",
@@ -720,6 +725,7 @@
   {
     "name": "ZDNet",
     "domain": "zdnet.com",
+    "priority": 11,
     "sources": [
       {
         "type": "official_rss",
@@ -1242,6 +1248,54 @@
         "priority": 2,
         "timeout_ms": 3000,
         "note": "Fallback - Google News for Nandurbar"
+      }
+    ]
+  },
+  {
+    "name": "gHacks Technology News",
+    "domain": "ghacks.net",
+    "sources": [
+      {
+        "type": "official_rss",
+        "url": "https://www.ghacks.net/feed/",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:ghacks.net&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://www.ghacks.net/",
+        "priority": 3,
+        "timeout_ms": 2000
+      }
+    ]
+  },
+  {
+    "name": "9to5Google",
+    "domain": "9to5google.com",
+    "sources": [
+      {
+        "type": "official_rss",
+        "url": "https://9to5google.com/feed/",
+        "priority": 1,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:9to5google.com&hl=en-US&gl=US&ceid=US:en",
+        "priority": 2,
+        "timeout_ms": 2000
+      },
+      {
+        "type": "scraper",
+        "url": "https://9to5google.com/",
+        "priority": 3,
+        "timeout_ms": 2000
       }
     ]
   }
