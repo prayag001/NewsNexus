@@ -1538,7 +1538,32 @@ TOPIC_KEYWORDS = {
         'cybersecurity', 'hacking', 'malware', 'ransomware', 'phishing', 'data breach',
         'silicon valley', 'techcrunch', 'product launch', 'tech giant'
     ],
+    'mobile': [
+        'mobile', 'smartphone', 'phone', 'android', 'ios', 'iphone', 'samsung',
+        'pixel', 'oneplus', 'xiaomi', 'oppo', 'vivo', 'realme', 'motorola',
+        'nokia', 'huawei', 'galaxy', 'mobile phone', 'cell phone', 'handset',
+        '5g phone', 'flagship phone', 'budget phone', 'mid-range phone',
+        'mobile camera', 'mobile processor', 'snapdragon', 'dimensity', 'exynos',
+        'mobile display', 'amoled', 'oled', 'refresh rate', 'mobile battery',
+        'fast charging', 'wireless charging', 'mobile os', 'android update',
+        'ios update', 'mobile app', 'mobile gaming', 'mobile chipset',
+        'foldable phone', 'flip phone', 'mobile launch', 'mobile review',
+        'mobile specs', 'mobile price', 'mobile deal', 'mobile sale'
+    ],
+    'laptop': [
+        'laptop', 'notebook', 'ultrabook', 'macbook', 'chromebook', 'gaming laptop',
+        'business laptop', 'laptop computer', 'portable computer', 'dell', 'hp',
+        'lenovo', 'asus', 'acer', 'msi', 'razer', 'alienware', 'thinkpad',
+        'laptop processor', 'intel', 'amd', 'ryzen', 'core i5', 'core i7', 'core i9',
+        'laptop gpu', 'nvidia', 'rtx', 'gtx', 'laptop display', 'laptop screen',
+        'laptop battery', 'laptop ram', 'laptop ssd', 'laptop storage',
+        'laptop keyboard', 'laptop trackpad', 'laptop webcam', 'laptop port',
+        'thunderbolt', 'usb-c', 'laptop review', 'laptop launch', 'laptop deal',
+        'laptop price', 'laptop specs', 'laptop performance', 'laptop cooling',
+        '2-in-1 laptop', 'convertible laptop', 'laptop upgrade'
+    ],
     'cricket': [
+
         'cricket', 'ipl', 'test match', 'odi', 't20', 'bcci', 'wicket',
         'batsman', 'batter', 'bowler', 'innings', 'stumps', 'run', 'six', 'four',
         'cricket world cup', 'virat kohli', 'rohit sharma', 'ms dhoni', 'century',
@@ -1736,6 +1761,206 @@ def filter_articles(articles: List[Dict], topic: Optional[str],
     )
     
     return filtered
+
+
+# =============================================================================
+# QUALITY SCORING & FILTERING SYSTEM
+# =============================================================================
+
+# High-value keywords that indicate quality, informative content
+QUALITY_INDICATORS = {
+    'ai': [
+        'artificial intelligence', 'machine learning', 'deep learning', 'neural network',
+        'gpt', 'llm', 'large language model', 'generative ai', 'genai', 'chatgpt',
+        'gemini', 'claude', 'copilot', 'openai', 'anthropic', 'deepmind',
+        'transformer', 'diffusion', 'stable diffusion', 'midjourney', 'dall-e',
+        'agi', 'ai model', 'training', 'inference', 'fine-tuning', 'prompt engineering',
+        'ai research', 'ai breakthrough', 'ai advancement', 'ai development',
+        'computer vision', 'nlp', 'natural language processing', 'reinforcement learning'
+    ],
+    'tech': [
+        'technology', 'innovation', 'breakthrough', 'development', 'research',
+        'algorithm', 'software', 'hardware', 'chip', 'processor', 'semiconductor',
+        'quantum', 'cloud computing', 'edge computing', 'api', 'framework',
+        'open source', 'github', 'developer', 'programming', 'coding',
+        'cybersecurity', 'encryption', 'privacy', 'data', 'analytics',
+        'platform', 'infrastructure', 'architecture', 'scalability', 'performance'
+    ],
+    'business': [
+        'funding', 'investment', 'acquisition', 'merger', 'ipo', 'valuation',
+        'revenue', 'profit', 'growth', 'expansion', 'partnership', 'collaboration',
+        'launch', 'release', 'announcement', 'unveil', 'introduce', 'debut'
+    ]
+}
+
+# Low-quality indicators - vague, clickbait, or uninformative patterns
+LOW_QUALITY_PATTERNS = [
+    r'\b(optimistic|pessimistic|bullish|bearish)\s+about\b',  # Vague sentiment
+    r'\beyes\s+(on|for)\b',  # "Company eyes expansion" - vague
+    r'\bset\s+to\b',  # "Set to launch" - speculative
+    r'\bmay\s+(be|have|see)\b',  # Too speculative
+    r'\bcould\s+(be|have|see)\b',  # Too speculative  
+    r'\bmight\s+(be|have|see)\b',  # Too speculative
+    r'\breportedly\b',  # Unconfirmed
+    r'\brumor(s|ed)?\b',  # Rumors
+    r'\bhere\'s\s+what\b',  # Clickbait
+    r'\byou\s+won\'t\s+believe\b',  # Clickbait
+    r'\bshocking\b',  # Clickbait
+    r'\bamaz(e|ing)\b',  # Clickbait
+    r'\b\d+\s+things?\s+you\b',  # Listicle clickbait
+]
+
+def calculate_quality_score(article: Dict, domain_priority: int = 99) -> float:
+    """
+    Calculate quality score for an article based on multiple factors.
+    
+    Score components:
+    - Content informativeness (0-40 points)
+    - Source credibility (0-20 points)
+    - Keyword richness for AI/tech (0-30 points)
+    - Recency boost (0-10 points)
+    
+    Returns:
+        float: Quality score from 0-100
+    """
+    score = 0.0
+    
+    title = article.get('title', '').lower()
+    summary = article.get('summary', '').lower()
+    text = f"{title} {summary}"
+    
+    # 1. Content Informativeness (0-40 points)
+    # Longer, more detailed content scores higher
+    content_length = len(summary)
+    if content_length > 500:
+        score += 40
+    elif content_length > 300:
+        score += 30
+    elif content_length > 150:
+        score += 20
+    elif content_length > 50:
+        score += 10
+    else:
+        score += 5
+    
+    # Bonus for specific numbers, data, percentages (indicates concrete info)
+    if re.search(r'\b\d+%', text):
+        score += 5
+    if re.search(r'\$\d+', text):
+        score += 5
+    if re.search(r'\b\d+\s*(million|billion|thousand)\b', text):
+        score += 5
+    
+    # 2. Source Credibility (0-20 points)
+    # Lower priority number = higher credibility
+    if domain_priority <= 3:
+        score += 20  # Top-tier sources
+    elif domain_priority <= 6:
+        score += 15  # High-quality sources
+    elif domain_priority <= 9:
+        score += 10  # Good sources
+    elif domain_priority <= 12:
+        score += 5   # Acceptable sources
+    
+    # 3. Keyword Richness for AI/Tech (0-30 points)
+    ai_matches = 0
+    tech_matches = 0
+    business_matches = 0
+    
+    for keyword in QUALITY_INDICATORS['ai']:
+        if keyword in text:
+            ai_matches += 1
+    
+    for keyword in QUALITY_INDICATORS['tech']:
+        if keyword in text:
+            tech_matches += 1
+    
+    for keyword in QUALITY_INDICATORS['business']:
+        if keyword in text:
+            business_matches += 1
+    
+    # AI news gets highest boost
+    if ai_matches >= 3:
+        score += 30
+    elif ai_matches >= 2:
+        score += 25
+    elif ai_matches >= 1:
+        score += 20
+    # Tech news gets good boost
+    elif tech_matches >= 3:
+        score += 20
+    elif tech_matches >= 2:
+        score += 15
+    elif tech_matches >= 1:
+        score += 10
+    # Business/startup news gets moderate boost
+    elif business_matches >= 2:
+        score += 10
+    elif business_matches >= 1:
+        score += 5
+    
+    # 4. Recency Boost (0-10 points)
+    if article.get('published_at'):
+        try:
+            pub_str = article['published_at']
+            if isinstance(pub_str, str):
+                pub_date = datetime.fromisoformat(pub_str.replace('Z', '+00:00'))
+                if pub_date.tzinfo is None:
+                    pub_date = pub_date.replace(tzinfo=timezone.utc)
+                
+                now = datetime.now(timezone.utc)
+                age_hours = (now - pub_date).total_seconds() / 3600
+                
+                if age_hours < 6:
+                    score += 10  # Very fresh
+                elif age_hours < 24:
+                    score += 7   # Today
+                elif age_hours < 48:
+                    score += 5   # Yesterday
+                elif age_hours < 72:
+                    score += 3   # Last 3 days
+        except (ValueError, TypeError):
+            pass
+    
+    # 5. Penalty for low-quality patterns
+    for pattern in LOW_QUALITY_PATTERNS:
+        if re.search(pattern, text, re.IGNORECASE):
+            score -= 15  # Significant penalty for vague/clickbait content
+            break  # Only apply penalty once
+    
+    # Ensure score is within bounds
+    return max(0.0, min(100.0, score))
+
+
+def filter_by_quality(articles: List[Dict], min_quality_score: float = 30.0, 
+                     domain_priority: int = 99) -> List[Dict]:
+    """
+    Filter articles by quality score and sort by quality.
+    
+    Args:
+        articles: List of articles to filter
+        min_quality_score: Minimum quality score threshold (0-100)
+        domain_priority: Priority of the source domain (lower = better)
+    
+    Returns:
+        List of high-quality articles sorted by score (highest first)
+    """
+    scored_articles = []
+    
+    for article in articles:
+        quality_score = calculate_quality_score(article, domain_priority)
+        
+        if quality_score >= min_quality_score:
+            article['_quality_score'] = quality_score
+            scored_articles.append(article)
+    
+    # Sort by quality score (highest first), then by date
+    scored_articles.sort(
+        key=lambda x: (x.get('_quality_score', 0), x.get('published_at', '')),
+        reverse=True
+    )
+    
+    return scored_articles
 
 
 
@@ -2114,16 +2339,23 @@ def get_articles(domain: str, topic: Optional[str] = None,
 # =============================================================================
 
 def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, location: Optional[str] = None, 
-                  lastNDays: Optional[int] = None) -> Dict:
+                  lastNDays: Optional[int] = None, enable_quality_filter: bool = True,
+                  min_quality_score: float = 35.0) -> Dict:
     """
-    Aggregate top news from ALL configured domains.
-    Fetches from each domain and merges results sorted by date (reverse chronological).
+    Aggregate top news from ALL configured domains with intelligent quality filtering.
+    
+    NEW FEATURES:
+    - Quality scoring and filtering for AI/tech news
+    - Automatic deep search if quality articles are insufficient
+    - Prioritizes informative, substantive content over vague headlines
     
     Args:
-        count: Number of articles to return (default: DEFAULT_ARTICLE_COUNT=10)
+        count: Number of articles to return (default: DEFAULT_ARTICLE_COUNT=8)
         topic: Optional topic filter
         location: Optional location filter
         lastNDays: Days to look back (capped at MAX_RECENT_DAYS=15)
+        enable_quality_filter: Enable quality scoring and filtering (default: True)
+        min_quality_score: Minimum quality score threshold 0-100 (default: 35)
     """
     start_time = time.time()
     metrics.increment('get_top_news_requests')
@@ -2149,11 +2381,12 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
     sources_used = []
     errors = []
     
-    # For top news, only fetch from top priority sites (faster response)
-    # Filter sites by priority field (lower number = higher priority)
-    TOP_NEWS_SITE_LIMIT = 15  # Fetch from top 15 sites (still responds fairly quickly)
+    # INTELLIGENT DEEP SEARCH MODE
+    # Start with top priority sites, expand if quality articles are insufficient
+    TOP_NEWS_SITE_LIMIT_INITIAL = 12  # Start with top 12 sites
+    TOP_NEWS_SITE_LIMIT_DEEP = 20     # Expand to 20 sites if needed
     
-    # FIXED: Only include sites with numeric priority 1-12, exclude null priority sites
+    # Filter sites by priority field (lower number = higher priority)
     priority_sites = [
         s for s in config 
         if s.get('domain') 
@@ -2162,15 +2395,21 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
         and 1 <= s.get('priority') <= 12
     ]
     
-    sites_to_fetch = sorted(priority_sites, key=lambda x: x.get('priority'))[:TOP_NEWS_SITE_LIMIT]
+    # Sort by priority
+    priority_sites_sorted = sorted(priority_sites, key=lambda x: x.get('priority'))
     
-    logger.info(f"Fetching top news from {len(sites_to_fetch)} priority sites")
+    # Phase 1: Fetch from initial set of priority sites
+    sites_to_fetch = priority_sites_sorted[:TOP_NEWS_SITE_LIMIT_INITIAL]
     
-    # Parallel domain fetching for top news - use more workers for faster response
-    max_workers = min(15, len(sites_to_fetch))  # Fetch all 15 sites in parallel
+    logger.info(f"Phase 1: Fetching top news from {len(sites_to_fetch)} priority sites")
+    
+    # Parallel domain fetching for top news
+    max_workers = min(12, len(sites_to_fetch))
     
     def fetch_domain(site_config):
         domain = site_config.get('domain')
+        domain_priority = site_config.get('priority', 99)
+        
         if not domain:
             return None
         
@@ -2180,15 +2419,19 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
                 topic=topic,
                 location=location,
                 lastNDays=lastNDays,
-                fast_mode=False  # Use official RSS first (priority 1), not Google News
+                fast_mode=False,
+                count=count  # Fetch more articles per domain for better quality selection
             )
             
             if result.get('articles'):
+                # Add domain priority for quality scoring
                 for article in result['articles']:
+                    article['_domain_priority'] = domain_priority
                     article['_fetch_source'] = result.get('sourceUsed', 'unknown')
                 
                 return {
                     'domain': domain,
+                    'priority': domain_priority,
                     'articles': result['articles'],
                     'source_info': {
                         'domain': domain,
@@ -2209,16 +2452,16 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
                 'error': str(e)
             }
     
-    # Use ThreadPoolExecutor for parallel domain fetching with overall 15-second timeout
+    # Use ThreadPoolExecutor for parallel domain fetching
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(fetch_domain, site_config): site_config 
                    for site_config in sites_to_fetch}
         
-        # Process futures as they complete with 15-second overall timeout for all domains
+        # Process futures as they complete with 15-second overall timeout
         try:
-            for future in as_completed(futures, timeout=15):  # Increased from 10s to 15s
+            for future in as_completed(futures, timeout=15):
                 try:
-                    result = future.result(timeout=5)  # Increased from 3s to 5s per domain
+                    result = future.result(timeout=5)
                     if result:
                         if 'articles' in result and result['articles']:
                             all_articles.extend(result['articles'])
@@ -2231,33 +2474,99 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
                     logger.error("Error fetching from domain %s: %s", domain, str(e))
                     errors.append({'domain': domain, 'error': str(e)})
         except FuturesTimeoutError:
-            logger.warning("get_top_news overall timeout (15s) reached, returning partial results")
-            # Cancel remaining futures
+            logger.warning("get_top_news Phase 1 timeout (15s) reached, returning partial results")
             for future in futures:
                 future.cancel()
     
-    # Deduplicate by URL (same article might come from multiple sources)
+    logger.info(f"Phase 1: Collected {len(all_articles)} articles from {len(sources_used)} sources")
+    
+    # Apply quality filtering if enabled
+    quality_articles = []
+    if enable_quality_filter and all_articles:
+        logger.info("Applying quality filtering with min_score=%.1f", min_quality_score)
+        
+        # Score and filter all articles
+        for article in all_articles:
+            domain_priority = article.get('_domain_priority', 99)
+            quality_score = calculate_quality_score(article, domain_priority)
+            
+            if quality_score >= min_quality_score:
+                article['_quality_score'] = quality_score
+                quality_articles.append(article)
+        
+        logger.info(f"Quality filter: {len(all_articles)} -> {len(quality_articles)} articles (threshold: {min_quality_score})")
+        
+        # DEEP SEARCH MODE: If we don't have enough quality articles, search deeper
+        if len(quality_articles) < count and len(sites_to_fetch) < TOP_NEWS_SITE_LIMIT_DEEP:
+            logger.info(f"Deep search activated: Only {len(quality_articles)} quality articles found, need {count}")
+            
+            # Fetch from additional priority sites
+            additional_sites = priority_sites_sorted[TOP_NEWS_SITE_LIMIT_INITIAL:TOP_NEWS_SITE_LIMIT_DEEP]
+            
+            if additional_sites:
+                logger.info(f"Phase 2: Fetching from {len(additional_sites)} additional priority sites")
+                
+                max_workers_deep = min(8, len(additional_sites))
+                
+                with ThreadPoolExecutor(max_workers=max_workers_deep) as executor:
+                    futures = {executor.submit(fetch_domain, site_config): site_config 
+                               for site_config in additional_sites}
+                    
+                    try:
+                        for future in as_completed(futures, timeout=12):
+                            try:
+                                result = future.result(timeout=5)
+                                if result and 'articles' in result and result['articles']:
+                                    # Score and filter new articles
+                                    for article in result['articles']:
+                                        domain_priority = article.get('_domain_priority', 99)
+                                        quality_score = calculate_quality_score(article, domain_priority)
+                                        
+                                        if quality_score >= min_quality_score:
+                                            article['_quality_score'] = quality_score
+                                            quality_articles.append(article)
+                                    
+                                    sources_used.append(result['source_info'])
+                            except Exception as e:
+                                pass
+                    except FuturesTimeoutError:
+                        logger.warning("Deep search timeout reached")
+                        for future in futures:
+                            future.cancel()
+                
+                logger.info(f"Phase 2 complete: Now have {len(quality_articles)} quality articles")
+    else:
+        # No quality filtering - use all articles
+        quality_articles = all_articles
+    
+    # Deduplicate by URL
     seen_urls = set()
     unique_articles = []
-    for article in all_articles:
+    for article in quality_articles:
         url = article.get('url', '').lower().rstrip('/')
         if url and url not in seen_urls:
             seen_urls.add(url)
             unique_articles.append(article)
     
-    logger.info(f"get_top_news: Collected {len(all_articles)} articles, deduplicated to {len(unique_articles)}")
+    logger.info(f"Deduplication: {len(quality_articles)} -> {len(unique_articles)} unique articles")
     
-    # Sort by date (newest first) for consistent ordering
-    unique_articles.sort(
-        key=lambda x: x.get('published_at') or '1970-01-01',
-        reverse=True
-    )
+    # Sort by quality score (if available) and date
+    if enable_quality_filter:
+        unique_articles.sort(
+            key=lambda x: (x.get('_quality_score', 0), x.get('published_at', '')),
+            reverse=True
+        )
+    else:
+        # Sort by date only
+        unique_articles.sort(
+            key=lambda x: x.get('published_at') or '1970-01-01',
+            reverse=True
+        )
     
-    # Take top N articles - STRICT ENFORCEMENT
+    # Take top N articles
     top_articles = unique_articles[:count]
     
     # Transform to user-friendly format with clean field names
-    # Also decode HTML entities for cleaner output
     clean_articles = []
     for article in top_articles:
         heading = html.unescape(article.get('title', ''))
@@ -2265,12 +2574,18 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
         # Remove HTML tags from summary if any
         summary = re.sub(r'<[^>]+>', '', summary)
         
-        clean_articles.append({
+        clean_article = {
             "heading": heading,
             "summary": summary,
             "date": article.get('published_at', ''),
             "source_link": article.get('url', '')
-        })
+        }
+        
+        # Include quality score in response if quality filtering was enabled
+        if enable_quality_filter and '_quality_score' in article:
+            clean_article['quality_score'] = round(article['_quality_score'], 1)
+        
+        clean_articles.append(clean_article)
     
     # STRICT: Ensure we never return more than requested count
     clean_articles = clean_articles[:count]
@@ -2281,11 +2596,21 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
     if clean_articles:
         metrics.increment('get_top_news_success')
     
-    return {
+    response = {
         "articles": clean_articles,
         "total": len(clean_articles),
         "durationMs": round(duration_ms, 2)
     }
+    
+    # Add metadata about quality filtering
+    if enable_quality_filter:
+        response['qualityFilterEnabled'] = True
+        response['minQualityScore'] = min_quality_score
+        if len(quality_articles) < len(all_articles):
+            response['filteredOut'] = len(all_articles) - len(quality_articles)
+    
+    return response
+
 
 
 def get_health() -> Dict:
@@ -2410,7 +2735,7 @@ def handle_request(request: Dict) -> Optional[Dict]:
                     },
                     {
                         "name": "get_top_news",
-                        "description": "Aggregate top RECENT news from ALL configured domains. Returns newest first. Default: 8 articles from last 15 days across all priority sites.",
+                        "description": "Aggregate top RECENT news from ALL configured domains with intelligent quality filtering. Automatically filters out vague/clickbait headlines and prioritizes informative AI/tech news. Uses deep search to find quality articles if needed. Returns newest first. Default: 8 high-quality articles from last 15 days.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -2435,6 +2760,18 @@ def handle_request(request: Dict) -> Optional[Dict]:
                                     "default": 15,
                                     "minimum": 1,
                                     "maximum": 15
+                                },
+                                "enable_quality_filter": {
+                                    "type": "boolean",
+                                    "description": "Enable intelligent quality filtering (default: true). Filters out vague/clickbait content and prioritizes informative AI/tech news",
+                                    "default": True
+                                },
+                                "min_quality_score": {
+                                    "type": "number",
+                                    "description": "Minimum quality score threshold 0-100 (default: 35). Higher values = stricter filtering. Recommended: 30-40 for balanced results, 40-50 for high quality only",
+                                    "default": 35.0,
+                                    "minimum": 0,
+                                    "maximum": 100
                                 }
                             },
                             "required": []

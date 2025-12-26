@@ -260,6 +260,7 @@
   {
     "name": "Analytics India Magazine",
     "domain": "analyticsindiamag.com",
+    "priority": 13,
     "sources": [
       {
         "type": "official_rss",
@@ -383,6 +384,7 @@
   {
     "name": "TechRepublic",
     "domain": "techrepublic.com",
+    "priority": 18,
     "sources": [
       {
         "type": "official_rss",
@@ -431,6 +433,7 @@
   {
     "name": "Google Research Blog",
     "domain": "research.google",
+    "priority": 14,
     "sources": [
       {
         "type": "official_rss",
@@ -455,6 +458,7 @@
   {
     "name": "Analytics Vidhya",
     "domain": "analyticsvidhya.com",
+    "priority": 15,
     "sources": [
       {
         "type": "official_rss",
@@ -479,6 +483,7 @@
   {
     "name": "KDnuggets",
     "domain": "kdnuggets.com",
+    "priority": 16,
     "sources": [
       {
         "type": "official_rss",
@@ -527,6 +532,7 @@
   {
     "name": "InfoWorld",
     "domain": "infoworld.com",
+    "priority": 17,
     "sources": [
       {
         "type": "official_rss",
@@ -551,6 +557,7 @@
   {
     "name": "AI News",
     "domain": "artificialintelligence-news.com",
+    "priority": 19,
     "sources": [
       {
         "type": "google_news",
@@ -577,6 +584,7 @@
   {
     "name": "TechBuzz AI",
     "domain": "techbuzz.ai",
+    "priority": 20,
     "sources": [
       {
         "type": "official_rss",
