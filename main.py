@@ -2339,7 +2339,8 @@ def get_articles(domain: str, topic: Optional[str] = None,
 # =============================================================================
 
 def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, location: Optional[str] = None, 
-                  lastNDays: Optional[int] = None, enable_quality_filter: bool = True,
+                  lastNDays: Optional[int] = None, lastNHours: Optional[int] = None,
+                  enable_quality_filter: bool = True,
                   min_quality_score: float = 35.0, domains: Optional[List[str]] = None) -> Dict:
     """
     Aggregate top news from ALL configured domains with intelligent quality filtering.
@@ -2348,17 +2349,19 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
     - Quality scoring and filtering for AI/tech news
     - Automatic deep search if quality articles are insufficient
     - Prioritizes informative, substantive content over vague headlines
-    - Optional domain filtering with fuzzy name matching
+    - Optional domain filtering with STRICT name matching
+    - Hour-based filtering for recent news
     
     Args:
         count: Number of articles to return (default: DEFAULT_ARTICLE_COUNT=8)
         topic: Optional topic filter
         location: Optional location filter
         lastNDays: Days to look back (capped at MAX_RECENT_DAYS=15)
+        lastNHours: Hours to look back (e.g., 12 for last 12 hours). Overrides lastNDays if provided.
         enable_quality_filter: Enable quality scoring and filtering (default: True)
         min_quality_score: Minimum quality score threshold 0-100 (default: 35)
         domains: Optional list of domain names to fetch from (e.g., ['wired', 'verge', 'techradar']).
-                Supports partial matching - 'wired' matches 'wired.com', 'verge' matches 'theverge.com'.
+                Uses STRICT matching - only exact domain matches.
                 When provided, only fetches from matching domains instead of priority list.
     """
     start_time = time.time()
@@ -2368,8 +2371,12 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
     if count is None:
         count = DEFAULT_ARTICLE_COUNT
     
-    # Enforce 15-day cap for recent news
-    if lastNDays is None:
+    # Handle hour-based filtering (overrides day-based if provided)
+    if lastNHours is not None:
+        # Convert hours to days for initial fetch (fetch more, filter later)
+        lastNDays = max(1, (lastNHours // 24) + 1)
+        logger.info(f"Hour-based filtering: last {lastNHours} hours (fetching from last {lastNDays} days)")
+    elif lastNDays is None:
         lastNDays = MAX_RECENT_DAYS
     elif lastNDays > MAX_RECENT_DAYS:
         logger.info("Capping lastNDays from %d to %d for top news", lastNDays, MAX_RECENT_DAYS)
@@ -2385,26 +2392,50 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
     sources_used = []
     errors = []
     
-    # DOMAIN FILTERING: If specific domains requested, use fuzzy matching
+    # DOMAIN FILTERING: If specific domains requested, use STRICT matching
     if domains:
-        logger.info(f"Domain filter activated: Searching for {len(domains)} domain(s)")
+        logger.info(f"Domain filter activated: Searching for {len(domains)} domain(s) - STRICT MODE")
         sites_to_fetch = []
+        matched_domains = []
         
         for domain_query in domains:
             # Normalize query (lowercase, remove spaces)
             query = domain_query.lower().strip().replace(' ', '')
+            matched_this_query = False
             
-            # Find matching sites by checking if query is in domain or name
+            # STRICT matching: only match if query is the main part of the domain
             for site in config:
                 site_domain = site.get('domain', '').lower()
                 site_name = site.get('name', '').lower().replace(' ', '')
                 
-                # Match if query is in domain or name
-                # Examples: 'wired' matches 'wired.com', 'verge' matches 'theverge.com'
-                if query in site_domain or query in site_name:
+                # Strict matching rules:
+                # 1. Query must be the main domain part (before first dot)
+                # 2. Or query must match the full domain
+                # 3. Or query must be in the site name (for multi-word names like "analytics vidhya")
+                
+                domain_parts = site_domain.split('.')
+                main_domain = domain_parts[0] if domain_parts else ''
+                
+                # Remove common prefixes
+                if main_domain.startswith('www'):
+                    main_domain = domain_parts[1] if len(domain_parts) > 1 else main_domain
+                
+                # Check for exact match
+                is_match = (
+                    query == main_domain or  # Exact match: 'wired' == 'wired'
+                    query == site_domain or  # Full domain match: 'wired.com' == 'wired.com'
+                    (query in site_name and len(query) > 3)  # Name match (min 4 chars): 'analyticsvidhya'
+                )
+                
+                if is_match:
                     if site not in sites_to_fetch:  # Avoid duplicates
                         sites_to_fetch.append(site)
-                        logger.info(f"  Matched '{domain_query}' -> {site.get('domain')} ({site.get('name')})")
+                        matched_domains.append(site.get('domain'))
+                        matched_this_query = True
+                        logger.info(f"  ✓ Matched '{domain_query}' -> {site.get('domain')} ({site.get('name')})")
+            
+            if not matched_this_query:
+                logger.warning(f"  ✗ No match found for '{domain_query}'")
         
         if not sites_to_fetch:
             logger.warning(f"No sites matched for domains: {domains}")
@@ -2416,6 +2447,7 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
             }
         
         logger.info(f"Domain filter: Matched {len(sites_to_fetch)} sites from {len(domains)} queries")
+        logger.info(f"Matched domains: {', '.join(matched_domains)}")
     else:
         # INTELLIGENT DEEP SEARCH MODE (existing logic)
         # Start with top priority sites, expand if quality articles are insufficient
@@ -2586,6 +2618,31 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
             unique_articles.append(article)
     
     logger.info(f"Deduplication: {len(quality_articles)} -> {len(unique_articles)} unique articles")
+    
+    # Hour-based filtering if specified
+    if lastNHours is not None:
+        from datetime import datetime, timedelta, timezone
+        
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=lastNHours)
+        filtered_by_hours = []
+        
+        for article in unique_articles:
+            pub_date_str = article.get('published_at', '')
+            if pub_date_str:
+                try:
+                    # Parse ISO 8601 date
+                    pub_date = datetime.fromisoformat(pub_date_str.replace('Z', '+00:00'))
+                    if pub_date >= cutoff_time:
+                        filtered_by_hours.append(article)
+                except:
+                    # If parsing fails, include the article
+                    filtered_by_hours.append(article)
+            else:
+                # If no date, include the article
+                filtered_by_hours.append(article)
+        
+        logger.info(f"Hour filtering: {len(unique_articles)} -> {len(filtered_by_hours)} articles (last {lastNHours} hours)")
+        unique_articles = filtered_by_hours
     
     # Sort by quality score (if available) and date
     if enable_quality_filter:
@@ -2845,6 +2902,12 @@ def handle_request(request: Dict) -> Optional[Dict]:
                                     "minimum": 1,
                                     "maximum": 15
                                 },
+                                "lastNHours": {
+                                    "type": "integer",
+                                    "description": "Hours to look back (e.g., 12 for last 12 hours). Overrides lastNDays if provided. Use this for very recent news.",
+                                    "minimum": 1,
+                                    "maximum": 72
+                                },
                                 "enable_quality_filter": {
                                     "type": "boolean",
                                     "description": "Enable intelligent quality filtering (default: true). Filters out vague/clickbait content and prioritizes informative AI/tech news",
@@ -2860,7 +2923,7 @@ def handle_request(request: Dict) -> Optional[Dict]:
                                 "domains": {
                                     "type": "array",
                                     "items": {"type": "string"},
-                                    "description": "Optional list of domain names to fetch from (e.g., ['wired', 'verge', 'techradar']). Supports partial matching - 'wired' matches 'wired.com', 'verge' matches 'theverge.com'. When provided, only fetches from matching domains instead of priority list."
+                                    "description": "Optional list of domain names to fetch from (e.g., ['wired', 'verge', 'techradar']). Uses STRICT matching - only exact domain matches. When provided, only fetches from specified domains."
                                 }
                             },
                             "required": []
@@ -2931,6 +2994,8 @@ def handle_request(request: Dict) -> Optional[Dict]:
                     safe_args['location'] = str(arguments['location'])
                 if 'lastNDays' in arguments:
                     safe_args['lastNDays'] = int(arguments['lastNDays'])
+                if 'lastNHours' in arguments:
+                    safe_args['lastNHours'] = int(arguments['lastNHours'])
                 if 'enable_quality_filter' in arguments:
                     safe_args['enable_quality_filter'] = bool(arguments['enable_quality_filter'])
                 if 'min_quality_score' in arguments:
