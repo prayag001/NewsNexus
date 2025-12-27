@@ -2590,7 +2590,7 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
     # Sort by quality score (if available) and date
     if enable_quality_filter:
         unique_articles.sort(
-            key=lambda x: (x.get('_quality_score', 0), x.get('published_at', '')),
+            key=lambda x: (x.get('_quality_score') or 0, x.get('published_at') or ''),
             reverse=True
         )
     else:
@@ -2600,8 +2600,55 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
             reverse=True
         )
     
-    # Take top N articles
-    top_articles = unique_articles[:count]
+    # DIVERSITY SELECTION: When using domain filtering, ensure balanced results
+    # Select articles from different domains in a round-robin fashion based on quality
+    if domains and len(unique_articles) > count:
+        logger.info("Applying diversity selection for domain-filtered results")
+        
+        # Group articles by domain
+        articles_by_domain = {}
+        for article in unique_articles:
+            source_link = article.get('url', '')
+            if source_link:
+                # Extract domain from URL
+                try:
+                    domain = source_link.split('/')[2] if len(source_link.split('/')) > 2 else 'unknown'
+                    if domain not in articles_by_domain:
+                        articles_by_domain[domain] = []
+                    articles_by_domain[domain].append(article)
+                except:
+                    pass
+        
+        # Sort articles within each domain by quality score
+        for domain in articles_by_domain:
+            articles_by_domain[domain].sort(
+                key=lambda x: (x.get('_quality_score') or 0, x.get('published_at') or ''),
+                reverse=True
+            )
+        
+        # Round-robin selection: Pick best article from each domain in rotation
+        diverse_articles = []
+        domain_list = list(articles_by_domain.keys())
+        domain_index = 0
+        
+        while len(diverse_articles) < count and any(articles_by_domain.values()):
+            current_domain = domain_list[domain_index % len(domain_list)]
+            
+            if articles_by_domain[current_domain]:
+                # Take the best remaining article from this domain
+                diverse_articles.append(articles_by_domain[current_domain].pop(0))
+            
+            domain_index += 1
+            
+            # Safety check: if we've cycled through all domains and nothing was added
+            if domain_index > len(domain_list) * 2 and len(diverse_articles) == 0:
+                break
+        
+        logger.info(f"Diversity selection: Selected {len(diverse_articles)} articles from {len([d for d in articles_by_domain.values() if d])} active domains")
+        top_articles = diverse_articles[:count]
+    else:
+        # Take top N articles (normal behavior)
+        top_articles = unique_articles[:count]
     
     # Transform to user-friendly format with clean field names
     clean_articles = []

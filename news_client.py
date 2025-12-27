@@ -106,15 +106,17 @@ def main():
                 domain = source_link.split('/')[2] if len(source_link.split('/')) > 2 else 'unknown'
                 domain_counts[domain] = domain_counts.get(domain, 0) + 1
         
+        
         print(f"\n📊 Articles by Domain:")
         for domain, count in sorted(domain_counts.items(), key=lambda x: x[1], reverse=True):
             print(f"   {domain:40s} - {count:2d} articles")
         
-        print(f"\n📰 Top 5 Articles:")
-        for i, article in enumerate(domain_articles[:5], 1):
-            print(f"\n{i}. {article.get('heading', 'N/A')[:70]}...")
+        print(f"\n📰 Article List (showing diversity):")
+        for i, article in enumerate(domain_articles[:10], 1):
+            source_link = article.get('source_link', '')
+            domain = source_link.split('/')[2] if len(source_link.split('/')) > 2 else 'unknown'
+            print(f"\n{i}. [{domain:20s}] {article.get('heading', 'N/A')[:50]}...")
             print(f"   Quality Score: {article.get('quality_score', 'N/A')}")
-            print(f"   Source: {article.get('source_link', 'N/A')[:60]}...")
         
         # Example 3: Check server health
         print("\n\n" + "="*80)
