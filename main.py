@@ -2482,12 +2482,15 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
             return None
         
         try:
+            # Use fast_mode when specific domains are requested (faster Google News)
+            use_fast_mode = domains is not None
+            
             result = get_articles(
                 domain=domain,
                 topic=topic,
                 location=location,
                 lastNDays=lastNDays,
-                fast_mode=False,
+                fast_mode=use_fast_mode,  # Fast mode for domain filtering
                 count=count  # Fetch more articles per domain for better quality selection
             )
             
