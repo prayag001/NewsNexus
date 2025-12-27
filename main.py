@@ -2920,7 +2920,39 @@ def handle_request(request: Dict) -> Optional[Dict]:
             }
         
         elif tool_name == 'get_top_news':
-            result = get_top_news(**arguments)
+            try:
+                # Validate and sanitize arguments
+                safe_args = {}
+                if 'count' in arguments:
+                    safe_args['count'] = int(arguments['count'])
+                if 'topic' in arguments:
+                    safe_args['topic'] = str(arguments['topic'])
+                if 'location' in arguments:
+                    safe_args['location'] = str(arguments['location'])
+                if 'lastNDays' in arguments:
+                    safe_args['lastNDays'] = int(arguments['lastNDays'])
+                if 'enable_quality_filter' in arguments:
+                    safe_args['enable_quality_filter'] = bool(arguments['enable_quality_filter'])
+                if 'min_quality_score' in arguments:
+                    safe_args['min_quality_score'] = float(arguments['min_quality_score'])
+                if 'domains' in arguments:
+                    # Ensure domains is a list of strings
+                    domains_arg = arguments['domains']
+                    if isinstance(domains_arg, list):
+                        safe_args['domains'] = [str(d) for d in domains_arg]
+                    elif isinstance(domains_arg, str):
+                        # Handle single domain as string
+                        safe_args['domains'] = [str(domains_arg)]
+                
+                result = get_top_news(**safe_args)
+            except Exception as e:
+                logger.error(f"Error in get_top_news tool call: {e}")
+                result = {
+                    "error": str(e),
+                    "articles": [],
+                    "total": 0
+                }
+            
             return {
                 "jsonrpc": "2.0",
                 "id": id_,
