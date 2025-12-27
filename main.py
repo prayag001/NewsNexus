@@ -2340,7 +2340,7 @@ def get_articles(domain: str, topic: Optional[str] = None,
 
 def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, location: Optional[str] = None, 
                   lastNDays: Optional[int] = None, enable_quality_filter: bool = True,
-                  min_quality_score: float = 35.0) -> Dict:
+                  min_quality_score: float = 35.0, domains: Optional[List[str]] = None) -> Dict:
     """
     Aggregate top news from ALL configured domains with intelligent quality filtering.
     
@@ -2348,6 +2348,7 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
     - Quality scoring and filtering for AI/tech news
     - Automatic deep search if quality articles are insufficient
     - Prioritizes informative, substantive content over vague headlines
+    - Optional domain filtering with fuzzy name matching
     
     Args:
         count: Number of articles to return (default: DEFAULT_ARTICLE_COUNT=8)
@@ -2356,6 +2357,9 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
         lastNDays: Days to look back (capped at MAX_RECENT_DAYS=15)
         enable_quality_filter: Enable quality scoring and filtering (default: True)
         min_quality_score: Minimum quality score threshold 0-100 (default: 35)
+        domains: Optional list of domain names to fetch from (e.g., ['wired', 'verge', 'techradar']).
+                Supports partial matching - 'wired' matches 'wired.com', 'verge' matches 'theverge.com'.
+                When provided, only fetches from matching domains instead of priority list.
     """
     start_time = time.time()
     metrics.increment('get_top_news_requests')
@@ -2381,27 +2385,59 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
     sources_used = []
     errors = []
     
-    # INTELLIGENT DEEP SEARCH MODE
-    # Start with top priority sites, expand if quality articles are insufficient
-    TOP_NEWS_SITE_LIMIT_INITIAL = 12  # Start with top 12 sites
-    TOP_NEWS_SITE_LIMIT_DEEP = 20     # Expand to 20 sites if needed
-    
-    # Filter sites by priority field (lower number = higher priority)
-    priority_sites = [
-        s for s in config 
-        if s.get('domain') 
-        and s.get('priority') is not None 
-        and isinstance(s.get('priority'), int)
-        and 1 <= s.get('priority') <= 12
-    ]
-    
-    # Sort by priority
-    priority_sites_sorted = sorted(priority_sites, key=lambda x: x.get('priority'))
-    
-    # Phase 1: Fetch from initial set of priority sites
-    sites_to_fetch = priority_sites_sorted[:TOP_NEWS_SITE_LIMIT_INITIAL]
-    
-    logger.info(f"Phase 1: Fetching top news from {len(sites_to_fetch)} priority sites")
+    # DOMAIN FILTERING: If specific domains requested, use fuzzy matching
+    if domains:
+        logger.info(f"Domain filter activated: Searching for {len(domains)} domain(s)")
+        sites_to_fetch = []
+        
+        for domain_query in domains:
+            # Normalize query (lowercase, remove spaces)
+            query = domain_query.lower().strip().replace(' ', '')
+            
+            # Find matching sites by checking if query is in domain or name
+            for site in config:
+                site_domain = site.get('domain', '').lower()
+                site_name = site.get('name', '').lower().replace(' ', '')
+                
+                # Match if query is in domain or name
+                # Examples: 'wired' matches 'wired.com', 'verge' matches 'theverge.com'
+                if query in site_domain or query in site_name:
+                    if site not in sites_to_fetch:  # Avoid duplicates
+                        sites_to_fetch.append(site)
+                        logger.info(f"  Matched '{domain_query}' -> {site.get('domain')} ({site.get('name')})")
+        
+        if not sites_to_fetch:
+            logger.warning(f"No sites matched for domains: {domains}")
+            return {
+                "articles": [],
+                "total": 0,
+                "durationMs": 0,
+                "error": f"No sites found matching: {', '.join(domains)}"
+            }
+        
+        logger.info(f"Domain filter: Matched {len(sites_to_fetch)} sites from {len(domains)} queries")
+    else:
+        # INTELLIGENT DEEP SEARCH MODE (existing logic)
+        # Start with top priority sites, expand if quality articles are insufficient
+        TOP_NEWS_SITE_LIMIT_INITIAL = 12  # Start with top 12 sites
+        TOP_NEWS_SITE_LIMIT_DEEP = 20     # Expand to 20 sites if needed
+        
+        # Filter sites by priority field (lower number = higher priority)
+        priority_sites = [
+            s for s in config 
+            if s.get('domain') 
+            and s.get('priority') is not None 
+            and isinstance(s.get('priority'), int)
+            and 1 <= s.get('priority') <= 12
+        ]
+
+        # Sort by priority
+        priority_sites_sorted = sorted(priority_sites, key=lambda x: x.get('priority'))
+        
+        # Phase 1: Fetch from initial set of priority sites
+        sites_to_fetch = priority_sites_sorted[:TOP_NEWS_SITE_LIMIT_INITIAL]
+        
+        logger.info(f"Phase 1: Fetching top news from {len(sites_to_fetch)} priority sites")
     
     # Parallel domain fetching for top news
     max_workers = min(12, len(sites_to_fetch))
@@ -2497,7 +2533,8 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
         logger.info(f"Quality filter: {len(all_articles)} -> {len(quality_articles)} articles (threshold: {min_quality_score})")
         
         # DEEP SEARCH MODE: If we don't have enough quality articles, search deeper
-        if len(quality_articles) < count and len(sites_to_fetch) < TOP_NEWS_SITE_LIMIT_DEEP:
+        # Only applies when using priority-based mode (not domain filtering)
+        if not domains and len(quality_articles) < count and len(sites_to_fetch) < TOP_NEWS_SITE_LIMIT_DEEP:
             logger.info(f"Deep search activated: Only {len(quality_articles)} quality articles found, need {count}")
             
             # Fetch from additional priority sites
@@ -2772,6 +2809,11 @@ def handle_request(request: Dict) -> Optional[Dict]:
                                     "default": 35.0,
                                     "minimum": 0,
                                     "maximum": 100
+                                },
+                                "domains": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                    "description": "Optional list of domain names to fetch from (e.g., ['wired', 'verge', 'techradar']). Supports partial matching - 'wired' matches 'wired.com', 'verge' matches 'theverge.com'. When provided, only fetches from matching domains instead of priority list."
                                 }
                             },
                             "required": []
