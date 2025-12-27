@@ -2391,12 +2391,12 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
     all_articles = []
     sources_used = []
     errors = []
+    matched_domains = []  # Track matched domains for strict output filtering
     
     # DOMAIN FILTERING: If specific domains requested, use STRICT matching
     if domains:
         logger.info(f"Domain filter activated: Searching for {len(domains)} domain(s) - STRICT MODE")
         sites_to_fetch = []
-        matched_domains = []
         
         for domain_query in domains:
             # Normalize query (lowercase, remove spaces)
@@ -2412,6 +2412,7 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
                 # 1. Query must be the main domain part (before first dot)
                 # 2. Or query must match the full domain
                 # 3. Or query must be in the site name (for multi-word names like "analytics vidhya")
+                # 4. Handle "the" prefix: 'verge' matches 'theverge'
                 
                 domain_parts = site_domain.split('.')
                 main_domain = domain_parts[0] if domain_parts else ''
@@ -2420,11 +2421,16 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
                 if main_domain.startswith('www'):
                     main_domain = domain_parts[1] if len(domain_parts) > 1 else main_domain
                 
+                # Handle "the" prefix: 'verge' should match 'theverge'
+                main_domain_without_the = main_domain[3:] if main_domain.startswith('the') else main_domain
+                
                 # Check for exact match
                 is_match = (
                     query == main_domain or  # Exact match: 'wired' == 'wired'
+                    query == main_domain_without_the or  # Without 'the': 'verge' == 'verge' (from 'theverge')
                     query == site_domain or  # Full domain match: 'wired.com' == 'wired.com'
-                    (query in site_name and len(query) > 3)  # Name match (min 4 chars): 'analyticsvidhya'
+                    (query in site_name and len(query) > 3) or  # Name match (min 4 chars): 'analyticsvidhya'
+                    (query in main_domain and len(query) >= 4)  # Partial match: 'techcrunch' in 'techcrunch'
                 )
                 
                 if is_match:
@@ -2709,6 +2715,24 @@ def get_top_news(count: Optional[int] = None, topic: Optional[str] = None, locat
     else:
         # Take top N articles (normal behavior)
         top_articles = unique_articles[:count]
+    
+    # STRICT OUTPUT FILTER: When domains are specified, ensure only matched domains in output
+    if domains and matched_domains:
+        filtered_articles = []
+        for article in top_articles:
+            article_url = article.get('url', '').lower()
+            # Check if article URL contains any of the matched domains
+            is_from_matched_domain = any(
+                domain.lower() in article_url 
+                for domain in matched_domains
+            )
+            if is_from_matched_domain:
+                filtered_articles.append(article)
+            else:
+                logger.debug(f"Filtered out article from non-matched domain: {article_url}")
+        
+        logger.info(f"Strict output filter: {len(top_articles)} -> {len(filtered_articles)} articles from matched domains only")
+        top_articles = filtered_articles
     
     # Transform to user-friendly format with clean field names
     clean_articles = []
