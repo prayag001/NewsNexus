@@ -1408,14 +1408,14 @@
     "domain": "analyticsinsight.net",
     "sources": [
       {
-        "type": "official_rss",
-        "url": "https://analyticsinsight.net/feed/",
+        "type": "google_news",
+        "url": "https://news.google.com/rss/search?q=site:analyticsinsight.net&hl=en-US&gl=US&ceid=US:en",
         "priority": 1,
         "timeout_ms": 2000
       },
       {
-        "type": "google_news",
-        "url": "https://news.google.com/rss/search?q=site:analyticsinsight.net&hl=en-US&gl=US&ceid=US:en",
+        "type": "official_rss",
+        "url": "https://analyticsinsight.net/feed/",
         "priority": 2,
         "timeout_ms": 2000
       },
